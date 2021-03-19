@@ -1,0 +1,13 @@
+networks:
+    default: development
+
+compiler:
+    solc:
+        version: 0.8.2
+        optimizer:
+            enabled: true
+            runs: 200
+        remappings:
+            - "@openzeppelin=OpenZeppelin/openzeppelin-contracts@4.0.0-rc.0"
+
+autofetch_sources: true

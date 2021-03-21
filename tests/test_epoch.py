@@ -16,9 +16,9 @@ def epoch(CoordinapeEpoch):
 
 
 def test_epoch_timing(epoch):
-    assert epoch.ended() == False
+    assert epoch.ended() is False
     chain.mine(EPOCH_END)
-    assert epoch.ended() == True
+    assert epoch.ended() is True
 
 
 def test_epoch_minting(epoch):

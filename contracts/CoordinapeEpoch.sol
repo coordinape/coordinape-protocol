@@ -63,16 +63,25 @@ contract CoordinapeEpoch is ERC20, Ownable {
         _notes[recipient][_msgSender()] = note;
     }
 
-    function leave() public onlyParticipant {
-        _alter(_msgSender(), Coordinape.EXTERNAL);
-    }
-
     function stopReceiving() public onlyParticipant {
         require(
             _participants[_msgSender()] & Coordinape.RECEIVING != 0,
             "CoordinapeEpoch: user is already a non-receiving participant."
         );
         _alter(_msgSender(), Coordinape.PARTICIPANT);
+    }
+
+    function leave() public onlyParticipant {
+        stopReceiving();
+        _burn(_msgSender(), balanceOf(_msgSender()));
+    }
+
+    function permissionsOf(address user) public view returns (uint8) {
+        return _participants[user];
+    }
+
+    function isParticipant(address user) public view returns (bool) {
+        return _participants[user] & Coordinape.PARTICIPANT != 0;
     }
 
     function startBlock() public view returns (uint256) {
@@ -93,10 +102,6 @@ contract CoordinapeEpoch is ERC20, Ownable {
             "CoordinapeEpoch: user state unchanged."
         );
         _participants[user] = role;
-    }
-
-    function decimals() public pure override returns (uint8) {
-        return 0;
     }
 
     modifier onlyParticipant() {
@@ -121,6 +126,10 @@ contract CoordinapeEpoch is ERC20, Ownable {
             "CoordinapeEpoch: method can only be called after the end of the epoch."
         );
         _;
+    }
+
+    function decimals() public pure override returns (uint8) {
+        return 0;
     }
 
     function transfer(address recipient, uint256 amount)

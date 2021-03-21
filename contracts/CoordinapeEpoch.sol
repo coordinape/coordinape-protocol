@@ -9,9 +9,9 @@ contract CoordinapeEpoch is ERC20, Ownable {
     uint256 _start;
     uint256 _end;
 
-    uint8 public constant EXTERNAL = 0;
-    uint8 public constant PARTICIPANT = 1;
-    uint8 public constant PARTICIPANT_NON_RECEIVING = 2;
+    uint8 public constant EXTERNAL = 0; // 00
+    uint8 public constant PARTICIPANT = 1; // 01
+    uint8 public constant NON_RECEIVING = 2; // 10
 
     mapping(address => uint8) _participants;
     mapping(address => mapping(address => string)) _notes;
@@ -42,7 +42,7 @@ contract CoordinapeEpoch is ERC20, Ownable {
             _participants[user] == EXTERNAL,
             "CoordinapeEpoch: user is already a participant."
         );
-        _alter(user, PARTICIPANT_NON_RECEIVING);
+        _alter(user, PARTICIPANT | NON_RECEIVING);
         _mint(user, _amount);
     }
 
@@ -80,10 +80,10 @@ contract CoordinapeEpoch is ERC20, Ownable {
 
     function stopReceiving() public onlyParticipant {
         require(
-            _participants[_msgSender()] != PARTICIPANT_NON_RECEIVING,
+            (_participants[_msgSender()] & NON_RECEIVING) != 0,
             "CoordinapeEpoch: user is already a non-receiving participant."
         );
-        _alter(_msgSender(), PARTICIPANT_NON_RECEIVING);
+        _alter(_msgSender(), PARTICIPANT | NON_RECEIVING);
     }
 
     function startBlock() public view returns (uint256) {
@@ -112,7 +112,7 @@ contract CoordinapeEpoch is ERC20, Ownable {
 
     modifier onlyParticipant() {
         require(
-            _participants[_msgSender()] > EXTERNAL,
+            (_participants[_msgSender()] & PARTICIPANT) != 0,
             "CoordinapeEpoch: method can only be called by a registered participant."
         );
         _;
@@ -142,7 +142,8 @@ contract CoordinapeEpoch is ERC20, Ownable {
         returns (bool)
     {
         require(
-            _participants[recipient] == PARTICIPANT,
+            (_participants[_msgSender()] & PARTICIPANT) != 0 &&
+                (_participants[_msgSender()] & NON_RECEIVING) == 0,
             "CoordinapeEpoch: recipient must be a participant"
         );
         return super.transfer(recipient, amount);
@@ -154,11 +155,12 @@ contract CoordinapeEpoch is ERC20, Ownable {
         uint256 amount
     ) public virtual override beforeEnd returns (bool) {
         require(
-            _participants[recipient] > EXTERNAL,
+            (_participants[_msgSender()] & PARTICIPANT) != 0,
             "CoordinapeEpoch: sender must be a participant"
         );
         require(
-            _participants[recipient] == PARTICIPANT,
+            (_participants[_msgSender()] & PARTICIPANT) != 0 &&
+                (_participants[_msgSender()] & NON_RECEIVING) == 0,
             "CoordinapeEpoch: recipient must be a participant"
         );
         return super.transferFrom(sender, recipient, amount);

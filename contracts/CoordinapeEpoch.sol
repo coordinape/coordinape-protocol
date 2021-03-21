@@ -54,7 +54,23 @@ contract CoordinapeEpoch is ERC20, Ownable {
         _alter(user, EXTERNAL);
     }
 
-    function leave() public onlyParticipants {
+    function addNote(address recipient, string memory note)
+        public
+        onlyParticipant
+        beforeEnd
+    {
+        require(
+            _participants[recipient] > EXTERNAL,
+            "CoordinapeEpoch: user is already a participant."
+        );
+        require(
+            _msgSender() != recipient,
+            "CoordinapeEpoch: cannot add a note to self."
+        );
+        _notes[recipient][_msgSender()] = note;
+    }
+
+    function leave() public onlyParticipant {
         require(
             _participants[_msgSender()] != EXTERNAL,
             "CoordinapeEpoch: user is already not a participant."
@@ -62,7 +78,7 @@ contract CoordinapeEpoch is ERC20, Ownable {
         _alter(_msgSender(), EXTERNAL);
     }
 
-    function stopReceiving() public onlyParticipants {
+    function stopReceiving() public onlyParticipant {
         require(
             _participants[_msgSender()] != PARTICIPANT_NON_RECEIVING,
             "CoordinapeEpoch: user is already a non-receiving participant."
@@ -94,7 +110,7 @@ contract CoordinapeEpoch is ERC20, Ownable {
         return 0;
     }
 
-    modifier onlyParticipants() {
+    modifier onlyParticipant() {
         require(
             _participants[_msgSender()] > EXTERNAL,
             "CoordinapeEpoch: method can only be called by a registered participant."
@@ -121,7 +137,7 @@ contract CoordinapeEpoch is ERC20, Ownable {
     function transfer(address recipient, uint256 amount)
         public
         override
-        onlyParticipants
+        onlyParticipant
         beforeEnd
         returns (bool)
     {
@@ -151,7 +167,7 @@ contract CoordinapeEpoch is ERC20, Ownable {
     function approve(address spender, uint256 amount)
         public
         override
-        onlyParticipants
+        onlyParticipant
         beforeEnd
         returns (bool)
     {
@@ -161,7 +177,7 @@ contract CoordinapeEpoch is ERC20, Ownable {
     function increaseAllowance(address spender, uint256 addedValue)
         public
         override
-        onlyParticipants
+        onlyParticipant
         beforeEnd
         returns (bool)
     {
@@ -171,7 +187,7 @@ contract CoordinapeEpoch is ERC20, Ownable {
     function decreaseAllowance(address spender, uint256 subtractedValue)
         public
         override
-        onlyParticipants
+        onlyParticipant
         beforeEnd
         returns (bool)
     {

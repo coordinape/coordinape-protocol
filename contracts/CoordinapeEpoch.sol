@@ -17,56 +17,40 @@ contract CoordinapeEpoch is ERC20, Ownable {
     uint256 private _amount;
 
     constructor(uint256 amount, uint256 end) ERC20("Give", "GIVE") {
-        require(
-            block.number < end,
-            "CoordinapeEpoch: end block must be in the future."
-        );
+        require(block.number < end, "end block must be in the future.");
         _amount = amount;
         _start = block.number;
         _end = end;
     }
 
     function addParticipant(address user, uint8 permissions) public onlyOwner {
-        require(
-            permissions & Coordinape.PARTICIPANT != 0,
-            "CoordinapeEpoch: permissions must contain 'PARTECIPANT'."
-        );
-        require(
-            _participants[user] == Coordinape.EXTERNAL,
-            "CoordinapeEpoch: user is already a participant."
-        );
+        require(permissions & Coordinape.PARTICIPANT != 0, "permissions must contain 'PARTECIPANT'.");
+        require(_participants[user] == Coordinape.EXTERNAL, "user is already a participant.");
         _alter(user, permissions);
         _mint(user, _amount);
     }
 
+    function freezePartecipant(address user) public onlyOwner {
+        require(_participants[user] & Coordinape.RECEIVING != 0, "sender is already a non-receiving participant.");
+        _alter(user, Coordinape.PARTICIPANT);
+        _burn(user, balanceOf(user));
+    }
+
     function removeParticipant(address user) public onlyOwner {
-        require(
-            _participants[_msgSender()] & Coordinape.PARTICIPANT != 0,
-            "CoordinapeEpoch: user is already not a participant."
-        );
+        require(_participants[user] & Coordinape.PARTICIPANT != 0, "user is already not a participant.");
         _alter(user, Coordinape.EXTERNAL);
     }
 
-    function addNote(address recipient, string memory note)
-        public
-        onlyParticipant
-        beforeEnd
-    {
-        require(
-            _participants[recipient] & Coordinape.PARTICIPANT != 0,
-            "CoordinapeEpoch: recipient is not a participant."
-        );
-        require(
-            _msgSender() != recipient,
-            "CoordinapeEpoch: cannot add a note to self."
-        );
+    function addNote(address recipient, string memory note) public onlyParticipant beforeEnd {
+        require(_msgSender() != recipient, "cannot add a note to self.");
+        require(_participants[recipient] & Coordinape.PARTICIPANT != 0, "recipient is not a participant.");
         _notes[recipient][_msgSender()] = note;
     }
 
     function stopReceiving() public onlyParticipant {
         require(
             _participants[_msgSender()] & Coordinape.RECEIVING != 0,
-            "CoordinapeEpoch: user is already a non-receiving participant."
+            "sender is already a non-receiving participant."
         );
         _alter(_msgSender(), Coordinape.PARTICIPANT);
     }
@@ -97,34 +81,25 @@ contract CoordinapeEpoch is ERC20, Ownable {
     }
 
     function _alter(address user, uint8 role) internal {
-        require(
-            role != _participants[user],
-            "CoordinapeEpoch: user state unchanged."
-        );
+        require(role != _participants[user], "user state unchanged.");
         _participants[user] = role;
     }
 
     modifier onlyParticipant() {
         require(
             _participants[_msgSender()] & Coordinape.PARTICIPANT != 0,
-            "CoordinapeEpoch: method can only be called by a registered participant."
+            "method can only be called by a registered participant."
         );
         _;
     }
 
     modifier beforeEnd() {
-        require(
-            !ended(),
-            "CoordinapeEpoch: method can only be called before the end of the epoch."
-        );
+        require(!ended(), "method can only be called before the end of the epoch.");
         _;
     }
 
     modifier afterEnd() {
-        require(
-            ended(),
-            "CoordinapeEpoch: method can only be called after the end of the epoch."
-        );
+        require(ended(), "method can only be called after the end of the epoch.");
         _;
     }
 
@@ -132,17 +107,11 @@ contract CoordinapeEpoch is ERC20, Ownable {
         return 0;
     }
 
-    function transfer(address recipient, uint256 amount)
-        public
-        override
-        onlyParticipant
-        beforeEnd
-        returns (bool)
-    {
+    function transfer(address recipient, uint256 amount) public override onlyParticipant beforeEnd returns (bool) {
         require(
-            (_participants[_msgSender()] & Coordinape.PARTICIPANT) != 0 &&
-                (_participants[_msgSender()] & Coordinape.RECEIVING) != 0,
-            "CoordinapeEpoch: recipient must be a receiving participant"
+            (_participants[recipient] & Coordinape.PARTICIPANT) != 0 &&
+                (_participants[recipient] & Coordinape.RECEIVING) != 0,
+            "recipient must be a receiving participant"
         );
         return super.transfer(recipient, amount);
     }
@@ -152,25 +121,16 @@ contract CoordinapeEpoch is ERC20, Ownable {
         address recipient,
         uint256 amount
     ) public virtual override beforeEnd returns (bool) {
+        require((_participants[sender] & Coordinape.PARTICIPANT) != 0, "sender must be a participant");
         require(
-            (_participants[_msgSender()] & Coordinape.PARTICIPANT) != 0,
-            "CoordinapeEpoch: sender must be a participant"
-        );
-        require(
-            (_participants[_msgSender()] & Coordinape.PARTICIPANT) != 0 &&
-                (_participants[_msgSender()] & Coordinape.RECEIVING) != 0,
-            "CoordinapeEpoch: recipient must be a receiving participant"
+            (_participants[recipient] & Coordinape.PARTICIPANT) != 0 &&
+                (_participants[recipient] & Coordinape.RECEIVING) != 0,
+            "recipient must be a receiving participant"
         );
         return super.transferFrom(sender, recipient, amount);
     }
 
-    function approve(address spender, uint256 amount)
-        public
-        override
-        onlyParticipant
-        beforeEnd
-        returns (bool)
-    {
+    function approve(address spender, uint256 amount) public override onlyParticipant beforeEnd returns (bool) {
         return super.approve(spender, amount);
     }
 

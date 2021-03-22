@@ -1,6 +1,6 @@
 import pytest
 
-from brownie import accounts, chain
+from brownie import accounts, chain, reverts
 
 
 EPOCH_END = 42
@@ -27,3 +27,21 @@ def test_epoch_minting(epoch):
         epoch.addParticipant(accounts[i], PERM_PARTICIPANT | PERM_RECEIVING)
         assert epoch.balanceOf(accounts[i]) == 100
         assert epoch.totalSupply() == 100 * (i + 1)
+
+
+def test_epoch_notes(epoch):
+    with reverts("method can only be called by a registered participant."):
+        epoch.addNote(accounts[1], "noop", {"from": accounts[1]})
+
+    epoch.addParticipant(accounts[1], PERM_PARTICIPANT | PERM_RECEIVING)
+
+    with reverts("cannot add a note to self."):
+        epoch.addNote(accounts[1], "noop", {"from": accounts[1]})
+
+    with reverts("recipient is not a participant."):
+        epoch.addNote(accounts[2], "noop", {"from": accounts[1]})
+
+    epoch.addParticipant(accounts[2], PERM_PARTICIPANT | PERM_RECEIVING)
+    epoch.addParticipant(accounts[3], PERM_PARTICIPANT)
+
+    epoch.addNote(accounts[2], "Good note", {"from": accounts[1]})

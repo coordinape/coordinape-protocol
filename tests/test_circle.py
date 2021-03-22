@@ -176,3 +176,16 @@ def test_circle_transfer(circle):
 
     assert circle.permissionsOf(accounts[1]) == PERM_EXTERNAL
     assert circle.permissionsOf(accounts[4]) == perm
+
+
+def test_circle_members(circle):
+    assert circle.membersCount() == 0
+    assert len(circle.members()) == 0
+
+    circle.invite(accounts[1])
+    circle.invite(accounts[2])
+
+    assert circle.membersCount() == 2
+    assert accounts[1] in circle.members()
+    assert accounts[2] in circle.members()
+    assert accounts[3] not in circle.members()

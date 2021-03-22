@@ -29,6 +29,10 @@ def test_epoch_minting(epoch):
         assert epoch.totalSupply() == 100 * (i + 1)
 
 
+def test_epoch_participants(epoch):
+    pass
+
+
 def test_epoch_notes(epoch):
     with reverts("method can only be called by a registered participant."):
         epoch.addNote(accounts[1], "noop", {"from": accounts[1]})

@@ -110,6 +110,22 @@ contract CoordinapeCircle is ERC721, Ownable {
         _issueInvite(_msgSender(), Coordinape.PARTICIPANT);
     }
 
+    function members() public view returns (address[] memory) {
+        address[] memory addresses = new address[](membersCount());
+        uint256 j = 0;
+        for (uint256 i = 1; i <= Counters.current(_inviteIds); i++) {
+            address owner = ownerOf(i);
+            if (owner != address(0)) {
+                addresses[j++] = owner;
+            }
+        }
+        return addresses;
+    }
+
+    function membersCount() public view returns (uint256) {
+        return totalSupply();
+    }
+
     function inviteOf(address recipient) public view returns (uint256) {
         return _invites[recipient];
     }

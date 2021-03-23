@@ -35,12 +35,6 @@ contract CoordinapeCircle is ERC721, Ownable {
     function invite(address recipient) public onlyOwner {
         require(balanceOf(recipient) == 0, "recipient is already invited.");
         _vouches[recipient] = _minimumVouches;
-        _issueInvite(recipient, Coordinape.PARTICIPANT | Coordinape.RECEIVING);
-    }
-
-    function inviteNonReceiving(address recipient) public onlyOwner {
-        require(balanceOf(recipient) == 0, "recipient is already invited.");
-        _vouches[recipient] = _minimumVouches;
         _issueInvite(recipient, Coordinape.PARTICIPANT);
     }
 
@@ -52,6 +46,10 @@ contract CoordinapeCircle is ERC721, Ownable {
     function edit(address recipient, uint8 permissions) public onlyOwner {
         require(balanceOf(recipient) >= 1, "recipient is not invited.");
         require(permissions != Coordinape.EXTERNAL, "call revoke to remove user.");
+        require(
+            permissions & Coordinape.PARTICIPANT != 0,
+            "permissions must contain at least 'PARTICIPANT'."
+        );
         uint256 inviteId = _invites[recipient];
         _invitePermissions[inviteId] = permissions;
     }
@@ -87,7 +85,7 @@ contract CoordinapeCircle is ERC721, Ownable {
 
     function leaveCurrentEpoch() public onlyInvited onlyInProgress {
         CoordinapeEpoch epoch = CoordinapeEpoch(currentEpochAddress());
-        epoch.freezePartecipant(_msgSender());
+        epoch.removeParticipant(_msgSender());
     }
 
     function vouch(address recipient) public onlyInvited {
@@ -100,13 +98,10 @@ contract CoordinapeCircle is ERC721, Ownable {
 
     function enter() public {
         require(balanceOf(_msgSender()) == 0, "sender is already invited.");
-        require(_vouches[_msgSender()] >= _minimumVouches, "sender didn't receive minimum vouches.");
-        _issueInvite(_msgSender(), Coordinape.PARTICIPANT | Coordinape.RECEIVING);
-    }
-
-    function enterNonReceiving() public {
-        require(balanceOf(_msgSender()) == 0, "sender is already invited.");
-        require(_vouches[_msgSender()] >= _minimumVouches, "sender didn't receive minimum vouches.");
+        require(
+            _vouches[_msgSender()] >= _minimumVouches,
+            "sender didn't receive minimum vouches."
+        );
         _issueInvite(_msgSender(), Coordinape.PARTICIPANT);
     }
 
@@ -114,8 +109,8 @@ contract CoordinapeCircle is ERC721, Ownable {
         address[] memory addresses = new address[](membersCount());
         uint256 j = 0;
         for (uint256 i = 1; i <= Counters.current(_inviteIds); i++) {
-            address owner = ownerOf(i);
-            if (owner != address(0)) {
+            if (_exists(i)) {
+                address owner = ownerOf(i);
                 addresses[j++] = owner;
             }
         }
@@ -196,7 +191,10 @@ contract CoordinapeCircle is ERC721, Ownable {
         address recipient,
         uint256 tokenId
     ) internal override {
-        require(recipient == address(0) || balanceOf(recipient) == 0, "recipient is already invited.");
+        require(
+            recipient == address(0) || balanceOf(recipient) == 0,
+            "recipient is already invited."
+        );
         require(
             recipient == address(0) || _vouches[recipient] >= _minimumVouches,
             "recipient didn't receive minimum vouches."

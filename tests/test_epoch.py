@@ -6,7 +6,7 @@ from brownie import accounts, chain, reverts
 EPOCH_END = 42
 PERM_EXTERNAL = 0
 PERM_PARTICIPANT = 1
-PERM_RECEIVING = 2
+PERM_RECEIVER = 2
 
 
 @pytest.fixture
@@ -24,20 +24,36 @@ def test_epoch_timing(epoch):
 def test_epoch_minting(epoch):
     assert epoch.totalSupply() == 0
     for i in range(3):
-        epoch.addParticipant(accounts[i], PERM_PARTICIPANT | PERM_RECEIVING)
+        epoch.addParticipant(accounts[i], PERM_PARTICIPANT | PERM_RECEIVER)
         assert epoch.balanceOf(accounts[i]) == 100
         assert epoch.totalSupply() == 100 * (i + 1)
 
 
 def test_epoch_participants(epoch):
-    pass
+    epoch.addParticipant(accounts[1], PERM_PARTICIPANT)
+
+    with reverts("recipient is already a participant."):
+        epoch.addParticipant(accounts[1], PERM_PARTICIPANT)
+
+    with reverts("call removeParticipant to remove participant."):
+        epoch.editParticipant(accounts[1], PERM_EXTERNAL)
+
+    with reverts("permissions must contain at least 'PARTICIPANT'."):
+        epoch.editParticipant(accounts[1], PERM_RECEIVER)
+
+    epoch.editParticipant(accounts[1], PERM_PARTICIPANT | PERM_RECEIVER)
+
+    epoch.removeParticipant(accounts[1])
+
+    with reverts("sender is already a non-receiver participant."):
+        epoch.removeParticipant(accounts[1])
 
 
 def test_epoch_notes(epoch):
     with reverts("method can only be called by a registered participant."):
         epoch.addNote(accounts[1], "noop", {"from": accounts[1]})
 
-    epoch.addParticipant(accounts[1], PERM_PARTICIPANT | PERM_RECEIVING)
+    epoch.addParticipant(accounts[1], PERM_PARTICIPANT | PERM_RECEIVER)
 
     with reverts("cannot add a note to self."):
         epoch.addNote(accounts[1], "noop", {"from": accounts[1]})
@@ -45,7 +61,7 @@ def test_epoch_notes(epoch):
     with reverts("recipient is not a participant."):
         epoch.addNote(accounts[2], "noop", {"from": accounts[1]})
 
-    epoch.addParticipant(accounts[2], PERM_PARTICIPANT | PERM_RECEIVING)
+    epoch.addParticipant(accounts[2], PERM_PARTICIPANT | PERM_RECEIVER)
     epoch.addParticipant(accounts[3], PERM_PARTICIPANT)
 
     epoch.addNote(accounts[2], "Good note", {"from": accounts[1]})

@@ -4,14 +4,22 @@ pragma solidity ^0.8.2;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/utils/Counters.sol";
 
 import "./Coordinape.sol";
 
 contract CoordinapeEpoch is ERC20, Ownable {
+    using Counters for Counters.Counter;
+
     uint256 private _start;
     uint256 private _end;
 
+    Counters.Counter private _participantsIds;
+    mapping(uint256 => address) private _participantsAddresses;
     mapping(address => uint8) private _participants;
+
+    mapping(address => uint256) private _unspent;
+
     mapping(address => mapping(address => string)) private _notes;
 
     uint256 private _amount;
@@ -23,36 +31,58 @@ contract CoordinapeEpoch is ERC20, Ownable {
         _end = end;
     }
 
-    function addParticipant(address user, uint8 permissions) public onlyOwner {
-        require(permissions & Coordinape.PARTICIPANT != 0, "permissions must contain 'PARTECIPANT'.");
-        require(_participants[user] == Coordinape.EXTERNAL, "user is already a participant.");
-        _alter(user, permissions);
-        _mint(user, _amount);
+    function addParticipant(address recipient, uint8 permissions) public onlyOwner {
+        require(
+            permissions & Coordinape.PARTICIPANT != 0,
+            "permissions must contain at least 'PARTICIPANT'."
+        );
+        require(
+            _participants[recipient] == Coordinape.EXTERNAL,
+            "recipient is already a participant."
+        );
+        _participantsAddresses[Counters.current(_participantsIds)] = recipient;
+        _participants[recipient] = permissions;
+        _unspent[recipient] = _amount;
+        _mint(recipient, _amount);
+        Counters.increment(_participantsIds);
     }
 
-    function freezePartecipant(address user) public onlyOwner {
-        require(_participants[user] & Coordinape.RECEIVING != 0, "sender is already a non-receiving participant.");
-        _alter(user, Coordinape.PARTICIPANT);
-        _burn(user, balanceOf(user));
+    function removeParticipant(address recipient) public onlyOwner {
+        require(
+            _participants[recipient] & Coordinape.RECEIVER != 0,
+            "sender is already a non-receiver participant."
+        );
+        _participants[recipient] = Coordinape.PARTICIPANT;
+        _burn(recipient, balanceOf(recipient));
     }
 
-    function removeParticipant(address user) public onlyOwner {
-        require(_participants[user] & Coordinape.PARTICIPANT != 0, "user is already not a participant.");
-        _alter(user, Coordinape.EXTERNAL);
+    function editParticipant(address recipient, uint8 permissions) public onlyOwner {
+        require(
+            permissions != Coordinape.EXTERNAL,
+            "call removeParticipant to remove participant."
+        );
+        require(
+            permissions & Coordinape.PARTICIPANT != 0,
+            "permissions must contain at least 'PARTICIPANT'."
+        );
+        _participants[recipient] = permissions;
     }
 
     function addNote(address recipient, string memory note) public onlyParticipant beforeEnd {
         require(_msgSender() != recipient, "cannot add a note to self.");
-        require(_participants[recipient] & Coordinape.PARTICIPANT != 0, "recipient is not a participant.");
+        require(
+            _participants[recipient] & Coordinape.PARTICIPANT != 0,
+            "recipient is not a participant."
+        );
         _notes[recipient][_msgSender()] = note;
     }
 
     function stopReceiving() public onlyParticipant {
         require(
-            _participants[_msgSender()] & Coordinape.RECEIVING != 0,
-            "sender is already a non-receiving participant."
+            _participants[_msgSender()] & Coordinape.RECEIVER != 0,
+            "sender is already a non-receiver participant."
         );
-        _alter(_msgSender(), Coordinape.PARTICIPANT);
+        _participants[_msgSender()] = _participants[_msgSender()] & ~Coordinape.PARTICIPANT;
     }
 
     function leave() public onlyParticipant {
@@ -60,12 +90,16 @@ contract CoordinapeEpoch is ERC20, Ownable {
         _burn(_msgSender(), balanceOf(_msgSender()));
     }
 
-    function permissionsOf(address user) public view returns (uint8) {
-        return _participants[user];
+    function receivedOf(address recipient) public view returns (uint256) {
+        return balanceOf(recipient) - _unspent[recipient];
     }
 
-    function isParticipant(address user) public view returns (bool) {
-        return _participants[user] & Coordinape.PARTICIPANT != 0;
+    function permissionsOf(address recipient) public view returns (uint8) {
+        return _participants[recipient];
+    }
+
+    function isParticipant(address recipient) public view returns (bool) {
+        return _participants[recipient] & Coordinape.PARTICIPANT != 0;
     }
 
     function startBlock() public view returns (uint256) {
@@ -78,11 +112,6 @@ contract CoordinapeEpoch is ERC20, Ownable {
 
     function ended() public view returns (bool) {
         return block.number >= _end;
-    }
-
-    function _alter(address user, uint8 role) internal {
-        require(role != _participants[user], "user state unchanged.");
-        _participants[user] = role;
     }
 
     modifier onlyParticipant() {
@@ -107,50 +136,24 @@ contract CoordinapeEpoch is ERC20, Ownable {
         return 0;
     }
 
-    function transfer(address recipient, uint256 amount) public override onlyParticipant beforeEnd returns (bool) {
-        require(
-            (_participants[recipient] & Coordinape.PARTICIPANT) != 0 &&
-                (_participants[recipient] & Coordinape.RECEIVING) != 0,
-            "recipient must be a receiving participant"
-        );
-        return super.transfer(recipient, amount);
-    }
-
-    function transferFrom(
+    function _beforeTokenTransfer(
         address sender,
         address recipient,
         uint256 amount
-    ) public virtual override beforeEnd returns (bool) {
-        require((_participants[sender] & Coordinape.PARTICIPANT) != 0, "sender must be a participant");
+    ) internal override {
+        if (sender == address(0) || recipient == address(0)) return;
         require(
-            (_participants[recipient] & Coordinape.PARTICIPANT) != 0 &&
-                (_participants[recipient] & Coordinape.RECEIVING) != 0,
-            "recipient must be a receiving participant"
+            _participants[sender] & Coordinape.PARTICIPANT != 0 &&
+                _participants[sender] & Coordinape.GIVER != 0,
+            "sender must be a giver participant"
         );
-        return super.transferFrom(sender, recipient, amount);
-    }
-
-    function approve(address spender, uint256 amount) public override onlyParticipant beforeEnd returns (bool) {
-        return super.approve(spender, amount);
-    }
-
-    function increaseAllowance(address spender, uint256 addedValue)
-        public
-        override
-        onlyParticipant
-        beforeEnd
-        returns (bool)
-    {
-        return super.increaseAllowance(spender, addedValue);
-    }
-
-    function decreaseAllowance(address spender, uint256 subtractedValue)
-        public
-        override
-        onlyParticipant
-        beforeEnd
-        returns (bool)
-    {
-        return super.decreaseAllowance(spender, subtractedValue);
+        require(
+            _participants[recipient] & Coordinape.PARTICIPANT != 0 &&
+                _participants[recipient] & Coordinape.RECEIVER != 0,
+            "recipient must be a receiver participant"
+        );
+        if (_unspent[sender] >= amount) {
+            _unspent[sender] -= amount;
+        }
     }
 }

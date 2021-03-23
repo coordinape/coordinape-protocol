@@ -6,7 +6,7 @@ from brownie import accounts, chain, reverts
 EPOCH_END = 42
 PERM_EXTERNAL = 0
 PERM_PARTICIPANT = 1
-PERM_RECEIVING = 2
+PERM_RECEIVER = 2
 
 
 @pytest.fixture
@@ -51,18 +51,13 @@ def test_circle_invite(circle):
         circle.invite(accounts[2], {"from": accounts[1]})
 
     circle.invite(accounts[1])
-    circle.inviteNonReceiving(accounts[2])
 
-    assert circle.permissionsOf(accounts[1]) == PERM_PARTICIPANT | PERM_RECEIVING
-    assert circle.permissionsOf(accounts[2]) == PERM_PARTICIPANT
+    assert circle.permissionsOf(accounts[1]) == PERM_PARTICIPANT
 
     assert circle.inviteOf(accounts[1]) == 1
-    assert circle.inviteOf(accounts[2]) == 2
 
     with reverts("recipient is already invited."):
-        circle.invite(accounts[2])
-    with reverts("recipient is already invited."):
-        circle.inviteNonReceiving(accounts[1])
+        circle.invite(accounts[1])
 
 
 def test_circle_edit(circle):
@@ -72,12 +67,12 @@ def test_circle_edit(circle):
     circle.invite(accounts[1])
 
     assert circle.permissionsOf(accounts[1]) & PERM_PARTICIPANT != 0
-    assert circle.permissionsOf(accounts[1]) & PERM_RECEIVING != 0
+    assert circle.permissionsOf(accounts[1]) & PERM_RECEIVER == 0
 
     circle.edit(accounts[1], PERM_PARTICIPANT)
 
     assert circle.permissionsOf(accounts[1]) & PERM_PARTICIPANT != 0
-    assert circle.permissionsOf(accounts[1]) & PERM_RECEIVING == 0
+    assert circle.permissionsOf(accounts[1]) & PERM_RECEIVER == 0
 
     with reverts("call revoke to remove user."):
         circle.edit(accounts[1], PERM_EXTERNAL)
@@ -95,14 +90,12 @@ def test_circle_revoke(circle):
 
 def test_circle_vouch(circle):
     circle.invite(accounts[1])
-    circle.inviteNonReceiving(accounts[2])
+    circle.invite(accounts[2])
 
     circle.setMinimumVouches(2)
 
     with reverts("sender didn't receive minimum vouches."):
         circle.enter({"from": accounts[3]})
-    with reverts("sender didn't receive minimum vouches."):
-        circle.enterNonReceiving({"from": accounts[4]})
 
     assert circle.vouchesOf(accounts[3]) == 0
     circle.vouch(accounts[3], {"from": accounts[1]})
@@ -110,8 +103,6 @@ def test_circle_vouch(circle):
 
     with reverts("sender didn't receive minimum vouches."):
         circle.enter({"from": accounts[3]})
-    with reverts("sender didn't receive minimum vouches."):
-        circle.enterNonReceiving({"from": accounts[4]})
 
     circle.vouch(accounts[3], {"from": accounts[2]})
 
@@ -120,16 +111,10 @@ def test_circle_vouch(circle):
 
     assert circle.vouchesOf(accounts[3]) == 2
 
-    circle.vouch(accounts[4], {"from": accounts[1]})
-    circle.vouch(accounts[4], {"from": accounts[2]})
-
     circle.enter({"from": accounts[3]})
-    circle.enterNonReceiving({"from": accounts[4]})
 
     with reverts("sender is already invited."):
         circle.enter({"from": accounts[3]})
-    with reverts("sender is already invited."):
-        circle.enterNonReceiving({"from": accounts[4]})
 
     with reverts("recipient is already invited."):
         circle.vouch(accounts[3], {"from": accounts[2]})
@@ -143,18 +128,20 @@ def test_circle_join_epoch(circle, CoordinapeEpoch):
     with reverts("no epoch currently in progress."):
         circle.joinCurrentEpoch({"from": accounts[1]})
 
+    circle.edit(accounts[1], PERM_PARTICIPANT | PERM_RECEIVER)
+
     epoch = circle.startEpoch(100, len(chain) + EPOCH_END)
     epoch = CoordinapeEpoch.at(epoch.return_value)
 
     circle.joinCurrentEpoch({"from": accounts[1]})
     assert epoch.isParticipant(accounts[1]) is True
     assert epoch.permissionsOf(accounts[1]) & PERM_PARTICIPANT != 0
-    assert epoch.permissionsOf(accounts[1]) & PERM_RECEIVING != 0
+    assert epoch.permissionsOf(accounts[1]) & PERM_RECEIVER != 0
 
     circle.leaveCurrentEpoch({"from": accounts[1]})
     assert epoch.isParticipant(accounts[1]) is True
     assert epoch.permissionsOf(accounts[1]) & PERM_PARTICIPANT != 0
-    assert epoch.permissionsOf(accounts[1]) & PERM_RECEIVING == 0
+    assert epoch.permissionsOf(accounts[1]) & PERM_RECEIVER == 0
 
 
 def test_circle_transfer(circle):
@@ -172,6 +159,10 @@ def test_circle_transfer(circle):
     circle.vouch(accounts[4], {"from": accounts[3]})
 
     perm = circle.permissionsOf(accounts[1])
+
+    with reverts("recipient is already invited."):
+        circle.transferFrom(accounts[1], accounts[3], invite_id, {"from": accounts[1]})
+
     circle.transferFrom(accounts[1], accounts[4], invite_id, {"from": accounts[1]})
 
     assert circle.permissionsOf(accounts[1]) == PERM_EXTERNAL
@@ -189,3 +180,9 @@ def test_circle_members(circle):
     assert accounts[1] in circle.members()
     assert accounts[2] in circle.members()
     assert accounts[3] not in circle.members()
+
+    circle.revoke(accounts[2]);
+
+    assert circle.membersCount() == 1
+    assert accounts[1] in circle.members()
+    assert accounts[2] not in circle.members()

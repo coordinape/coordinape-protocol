@@ -7,6 +7,7 @@ EPOCH_END = 42
 PERM_EXTERNAL = 0
 PERM_PARTICIPANT = 1
 PERM_RECEIVER = 2
+PERM_GIVER = 4
 
 
 @pytest.fixture
@@ -30,7 +31,11 @@ def test_epoch_minting(epoch):
 
 
 def test_epoch_participants(epoch):
+    assert len(epoch.participants()) == 0
+
     epoch.addParticipant(accounts[1], PERM_PARTICIPANT)
+
+    assert len(epoch.participants()) == 1
 
     with reverts("recipient is already a participant."):
         epoch.addParticipant(accounts[1], PERM_PARTICIPANT)
@@ -44,6 +49,10 @@ def test_epoch_participants(epoch):
     epoch.editParticipant(accounts[1], PERM_PARTICIPANT | PERM_RECEIVER)
 
     epoch.removeParticipant(accounts[1])
+
+    # still one, because a when a user is removed from an epoch he loses
+    # all permissions but the the PERM_PARTICIPANT one, to prevent rejoining
+    assert len(epoch.participants()) == 1
 
     with reverts("sender is already a non-receiver participant."):
         epoch.removeParticipant(accounts[1])

@@ -7,11 +7,12 @@ EPOCH_END = 42
 PERM_EXTERNAL = 0
 PERM_PARTICIPANT = 1
 PERM_RECEIVER = 2
+PERM_GIVER = 4
 
 
 @pytest.fixture
 def circle(CoordinapeCircle):
-    return CoordinapeCircle.deploy("YEARN", "capeYFI", {"from": accounts[0]})
+    return CoordinapeCircle.deploy("YEARN", "capeYFI", "", {"from": accounts[0]})
 
 
 def test_circle_simple_data(circle):
@@ -181,7 +182,7 @@ def test_circle_members(circle):
     assert accounts[2] in circle.members()
     assert accounts[3] not in circle.members()
 
-    circle.revoke(accounts[2]);
+    circle.revoke(accounts[2])
 
     assert circle.membersCount() == 1
     assert accounts[1] in circle.members()

@@ -90,6 +90,14 @@ contract CoordinapeEpoch is ERC20, Ownable {
         _burn(_msgSender(), balanceOf(_msgSender()));
     }
 
+    function participants() public view returns (address[] memory) {
+        address[] memory addresses = new address[](Counters.current(_participantsIds));
+        for (uint256 i = 0; i < Counters.current(_participantsIds); i++) {
+            addresses[i] = _participantsAddresses[i];
+        }
+        return addresses;
+    }
+
     function receivedOf(address recipient) public view returns (uint256) {
         return balanceOf(recipient) - _unspent[recipient];
     }

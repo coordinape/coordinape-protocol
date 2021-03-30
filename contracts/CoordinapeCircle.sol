@@ -30,7 +30,15 @@ contract CoordinapeCircle is ERC721, Ownable {
     event InviteIssued(address indexed recipient, uint8 permissions);
     event InviteRevoked(address indexed recipient);
 
-    constructor(string memory name, string memory id) ERC721(name, id) {}
+    string private _uri;
+
+    constructor(
+        string memory name,
+        string memory id,
+        string memory uri
+    ) ERC721(name, id) {
+        _uri = uri;
+    }
 
     function invite(address recipient) public onlyOwner {
         require(balanceOf(recipient) == 0, "recipient is already invited.");
@@ -58,19 +66,13 @@ contract CoordinapeCircle is ERC721, Ownable {
         _minimumVouches = value;
     }
 
-    function startEpoch(uint256 amount, uint256 end) public onlyOwner returns (address epoch) {
+    function startEpoch(uint256 amount, uint256 end) public onlyOwner returns (address) {
         require(!_epochInProgress(), "another epoch is already in progress.");
         require(block.number < end, "end block must be in the future.");
 
-        bytes memory creationCode = type(CoordinapeEpoch).creationCode;
-        bytes memory bytecode = abi.encodePacked(creationCode, abi.encode(amount, end));
-
         Counters.increment(_epochIds);
         uint256 epochId = Counters.current(_epochIds);
-        bytes32 salt = keccak256(abi.encodePacked(name(), symbol(), epochId));
-        assembly {
-            epoch := create2(0, add(bytecode, 32), mload(bytecode), salt)
-        }
+        address epoch = address(new CoordinapeEpoch(amount, end));
         _epochs[epochId] = epoch;
         emit EpochCreated(epochId, epoch, end);
         return epoch;
@@ -184,6 +186,10 @@ contract CoordinapeCircle is ERC721, Ownable {
 
     function totalSupply() public view returns (uint256) {
         return Counters.current(_inviteIds) - Counters.current(_inviteBurned);
+    }
+
+    function _baseURI() internal view override returns (string memory) {
+        return _uri;
     }
 
     function _beforeTokenTransfer(

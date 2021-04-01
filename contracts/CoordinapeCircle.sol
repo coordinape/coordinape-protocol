@@ -8,6 +8,7 @@ import "@openzeppelin/contracts/utils/Counters.sol";
 
 import "./Coordinape.sol";
 import "./CoordinapeEpoch.sol";
+import "./CoordinapeTokenSet.sol";
 
 contract CoordinapeCircle is ERC721, Ownable {
     using Counters for Counters.Counter;
@@ -16,89 +17,105 @@ contract CoordinapeCircle is ERC721, Ownable {
     mapping(address => uint256) private _invites;
     mapping(uint256 => uint8) private _invitePermissions;
 
-    Counters.Counter private _inviteBurned;
+    Counters.Counter private _inactiveMembers;
 
     Counters.Counter private _epochIds;
-    mapping(uint256 => address) private _epochs;
+    mapping(uint256 => uint256) private _epochEnds;
 
-    uint256 private _minimumVouches = 2**256 - 1;
+    uint256 private _minimumVouches;
     mapping(address => uint256) private _vouches;
     mapping(address => mapping(address => bool)) private _vouchedFor;
 
-    event EpochCreated(uint256 indexed id, address epoch, uint256 end);
+    Coordinape1155 tokenSet;
+
+    event EpochCreated(uint256 indexed id, uint256 end);
     event VouchCreated(address indexed recipient, address indexed sender);
     event InviteIssued(address indexed recipient, uint8 permissions);
-    event InviteRevoked(address indexed recipient);
+    event InviteRevoked(address indexed recipient, uint8 permissions);
 
     string private _uri;
 
     constructor(
         string memory name,
         string memory id,
-        string memory uri
+        string memory uri,
+        uint256 _minimumV
     ) ERC721(name, id) {
         _uri = uri;
+        _minimumVouches = _minimumV;
     }
 
-    function invite(address recipient) public onlyOwner {
+    function invite(address recipient, uint8 _rights) external onlyOwner {
         require(balanceOf(recipient) == 0, "recipient is already invited.");
         _vouches[recipient] = _minimumVouches;
-        _issueInvite(recipient, Coordinape.PARTICIPANT);
+        _issueInvite(recipient, _rights);
     }
 
-    function revoke(address recipient) public onlyOwner {
+    // to consider, should we remove them from the epoch too?
+    function revoke(address recipient) external onlyOwner {
         require(balanceOf(recipient) >= 1, "recipient is not invited.");
         _revokeInvite(recipient);
     }
 
-    function edit(address recipient, uint8 permissions) public onlyOwner {
+    function edit(address recipient, uint8 permissions) external onlyOwner {
         require(balanceOf(recipient) >= 1, "recipient is not invited.");
         require(permissions != Coordinape.EXTERNAL, "call revoke to remove user.");
         require(
             permissions & Coordinape.PARTICIPANT != 0,
             "permissions must contain at least 'PARTICIPANT'."
         );
-        uint256 inviteId = _invites[recipient];
-        _invitePermissions[inviteId] = permissions;
+        uint256 tokenId = _invites[recipient];
+        _invitePermissions[tokenId] = permissions;
     }
 
-    function setMinimumVouches(uint256 value) public onlyOwner {
+    function setMinimumVouches(uint256 value) external onlyOwner {
         _minimumVouches = value;
     }
 
-    function startEpoch(uint256 amount, uint256 end) public onlyOwner returns (address) {
+    function setTokenSet(address _tokenSet) external onlyOwner {
+        tokenSet = Coordinape1155(_tokenSet);
+    }
+
+    function startEpoch(uint256 amount, uint256 end, uint256 _grant) external onlyOwner {
         require(!_epochInProgress(), "another epoch is already in progress.");
         require(block.number < end, "end block must be in the future.");
 
         Counters.increment(_epochIds);
         uint256 epochId = Counters.current(_epochIds);
-        address epoch = address(new CoordinapeEpoch(amount, end));
-        _epochs[epochId] = epoch;
-        emit EpochCreated(epochId, epoch, end);
-        return epoch;
+        //address epoch = address(new CoordinapeEpoch(amount, end));
+        //_epochs[epochId] = epoch;
+        _epochEnds[epochId] = end;
+        tokenSet.startEpoch(epochId, amount, _grant);
+        emit EpochCreated(epochId, end);
     }
 
-    function joinCurrentEpoch() public onlyInvited onlyInProgress {
-        CoordinapeEpoch epoch = CoordinapeEpoch(currentEpochAddress());
+    function joinCurrentEpoch(bool _optOut) external onlyInvited onlyInProgress {
         uint256 tokenId = _invites[_msgSender()];
         uint8 permissions = _invitePermissions[tokenId];
-        epoch.addParticipant(_msgSender(), permissions);
+        if (_optOut)
+        {
+            require(permissions & Coordinape.GIVER != 0, "Cannot optout if no givver rights");
+            tokenSet.addParticipant(_epochIds.current(), _msgSender(), permissions & ~Coordinape.RECEIVER);
+        }
+        else
+            tokenSet.addParticipant(_epochIds.current(), _msgSender(), permissions);
     }
 
-    function leaveCurrentEpoch() public onlyInvited onlyInProgress {
-        CoordinapeEpoch epoch = CoordinapeEpoch(currentEpochAddress());
-        epoch.removeParticipant(_msgSender());
+    function leaveCurrentEpoch() external onlyInvited onlyInProgress {
+        tokenSet.removeParticipant(_epochIds.current(), _msgSender());
     }
 
-    function vouch(address recipient) public onlyInvited {
+    function vouch(address recipient) external onlyInvited {
         require(balanceOf(recipient) == 0, "recipient is already invited.");
         require(!_vouchedFor[_msgSender()][recipient], "sender already vouched for recipient.");
+        uint256 tokenId = _invites[_msgSender()];
+        require(_invitePermissions[tokenId] & Coordinape.GIVER != 0, "sender cannot vouch");
         _vouches[recipient] += 1;
         _vouchedFor[_msgSender()][recipient] = true;
         emit VouchCreated(recipient, _msgSender());
     }
 
-    function enter() public {
+    function enter() external {
         require(balanceOf(_msgSender()) == 0, "sender is already invited.");
         require(
             _vouches[_msgSender()] >= _minimumVouches,
@@ -107,8 +124,8 @@ contract CoordinapeCircle is ERC721, Ownable {
         _issueInvite(_msgSender(), Coordinape.PARTICIPANT);
     }
 
-    function members() public view returns (address[] memory) {
-        address[] memory addresses = new address[](membersCount());
+    function members() external view returns (address[] memory) {
+        address[] memory addresses = new address[](activeMembersCount());
         uint256 j = 0;
         for (uint256 i = 1; i <= Counters.current(_inviteIds); i++) {
             if (_exists(i)) {
@@ -119,7 +136,7 @@ contract CoordinapeCircle is ERC721, Ownable {
         return addresses;
     }
 
-    function membersCount() public view returns (uint256) {
+    function activeMembersCount() public view returns (uint256) {
         return totalSupply();
     }
 
@@ -127,33 +144,34 @@ contract CoordinapeCircle is ERC721, Ownable {
         return _invites[recipient];
     }
 
-    function permissionsOf(address recipient) public view returns (uint8) {
+    function permissionsOf(address recipient) external view returns (uint8) {
         return _invitePermissions[inviteOf(recipient)];
     }
 
-    function vouchesOf(address recipient) public view returns (uint256) {
+    function vouchesOf(address recipient) external view returns (uint256) {
         return _vouches[recipient];
     }
 
-    function minimumVouches() public view returns (uint256) {
+    function minimumVouches() external view returns (uint256) {
         return _minimumVouches;
     }
 
-    function currentEpochAddress() public view returns (address) {
-        return epochAddress(currentEpochId());
-    }
+    // function currentEpochAddress() public view returns (address) {
+    //     return epochAddress(currentEpochId());
+    // }
 
     function currentEpochId() public view returns (uint256) {
         return Counters.current(_epochIds);
     }
 
-    function epochAddress(uint256 id) public view returns (address) {
-        return _epochs[id];
-    }
+    // function epochAddress(uint256 id) public view returns (address) {
+    //     return _epochs[id];
+    // }
 
     function _epochInProgress() internal view returns (bool) {
         uint256 epochId = Counters.current(_epochIds);
-        return epochId > 0 && !CoordinapeEpoch(_epochs[epochId]).ended();
+        // return epochId > 0 && !CoordinapeEpoch(_epochs[epochId]).ended();
+        return epochId > 0 && block.number < _epochEnds[epochId];
     }
 
     function _issueInvite(address recipient, uint8 permissions) internal {
@@ -168,10 +186,11 @@ contract CoordinapeCircle is ERC721, Ownable {
 
     function _revokeInvite(address recipient) internal {
         uint256 tokenId = _invites[recipient];
-        _burn(tokenId);
+        _inactiveMembers.increment();
+        //_burn(tokenId);
         _invitePermissions[tokenId] = 0;
         _invites[recipient] = 0;
-        emit InviteRevoked(recipient);
+        emit InviteRevoked(recipient, 0);
     }
 
     modifier onlyInvited() {
@@ -184,8 +203,9 @@ contract CoordinapeCircle is ERC721, Ownable {
         _;
     }
 
+    // should be totalActiveMembers
     function totalSupply() public view returns (uint256) {
-        return Counters.current(_inviteIds) - Counters.current(_inviteBurned);
+        return Counters.current(_inviteIds) - _inactiveMembers.current();
     }
 
     function _baseURI() internal view override returns (string memory) {
@@ -197,18 +217,18 @@ contract CoordinapeCircle is ERC721, Ownable {
         address recipient,
         uint256 tokenId
     ) internal override {
-        require(
-            recipient == address(0) || balanceOf(recipient) == 0,
-            "recipient is already invited."
-        );
-        require(
-            recipient == address(0) || _vouches[recipient] >= _minimumVouches,
-            "recipient didn't receive minimum vouches."
-        );
-        _invites[sender] = 0;
-        _invites[recipient] = tokenId;
-        if (recipient == address(0)) {
-            Counters.increment(_inviteBurned);
-        }
+        // require(
+        //     recipient == address(0) || balanceOf(recipient) == 0,
+        //     "recipient is already invited."
+        // );
+        // require(
+        //     recipient == address(0) || _vouches[recipient] >= _minimumVouches,
+        //     "recipient didn't receive minimum vouches."
+        // );
+        // _invites[sender] = 0;
+        // _invites[recipient] = tokenId;
+        // if (recipient == address(0)) {
+        //     Counters.increment(_inviteBurned);
+        // }
     }
 }

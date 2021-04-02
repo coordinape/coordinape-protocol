@@ -10,6 +10,7 @@ import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 
 import "./Coordinape.sol";
+import "./CoordinapeCircle.sol";
 
 contract Coordinape1155 is ERC1155("some uri"), Ownable {
 	using SafeMath for uint256;
@@ -61,7 +62,7 @@ contract Coordinape1155 is ERC1155("some uri"), Ownable {
             _participantsPerms[_epoch][_recipient] == Coordinape.EXTERNAL,
             "recipient is already a participant."
         );
-        _participantsPerms[_epoch][_participantsIds[_epoch].current()] = _recipient;
+        _participantsAddresses[_epoch][_participantsIds[_epoch].current()] = _recipient;
         _participantsPerms[_epoch][_recipient] = _perms;
 		// do we need?
         //_unspent[epoch][recipient] = _amount;
@@ -96,11 +97,14 @@ contract Coordinape1155 is ERC1155("some uri"), Ownable {
 		uint256[] calldata _alloc,
 		bytes calldata _sig)
 		external onlyOwner {
+		require(CoordinapeCircle(owner()).state(_epoch) == 0, "Wrong state to sync");
 		require(_hasAllocated[_epoch][_giver], "Giver already allocated");
 		require(_alloc.length == _receivers.length, "array length not equal");
+		require(_participantsPerms[_epoch][_giver] & Coordinape.GIVER != 0, "giver cannot give");
 		require(keccak256(abi.encodePacked(_receivers, _alloc)).recover(_sig) == _giver,
 			"Invalid signature");
 		uint256 sum = getSumAmount(_epoch, _alloc);
+
 		checkReceivers(_epoch, _receivers);
 		for(uint256 i = 0; i < _receivers.length; i++)
 			_mint(_receivers[i], _epoch + DELIMITOR, _alloc[i], "");
@@ -108,7 +112,7 @@ contract Coordinape1155 is ERC1155("some uri"), Ownable {
 		_hasAllocated[_epoch][_giver] = true;
 	}
 
-	function getSumAmount(uuint256 _epoch, uint256[] calldata _alloc) internal view returns (uint256) {
+	function getSumAmount(uint256 _epoch, uint256[] calldata _alloc) internal view returns (uint256) {
 		uint256 sum;
 		for (uint256 i = 0 ; i < _alloc.length; i++)
 			sum += _alloc[i];
@@ -152,12 +156,12 @@ contract Coordinape1155 is ERC1155("some uri"), Ownable {
 		require(balance > 0, "No Get tokens");
 		uint256 grant = grantAmounts[_epoch];
 		require(grant > 0, "No funds");
-		uint256 supply = getSupply[_set.add(DELIMITOR)];
+		uint256 supply = getSupply[_epoch.add(DELIMITOR)];
 		uint256 alloc = grant.mul(balance).div(supply);
 
-		_burn(msg.sender, _set + DELIMITOR, balance);
+		_burn(msg.sender, _epoch + DELIMITOR, balance);
 		grantAmounts[_epoch] -= alloc;
-		getSupply[_set.add(DELIMITOR)] -= balance;
+		getSupply[_epoch.add(DELIMITOR)] -= balance;
 		grantToken.transfer(msg.sender, alloc);
 	}
 
@@ -168,8 +172,8 @@ contract Coordinape1155 is ERC1155("some uri"), Ownable {
 
 		// add require to check state allows burn
 
-		getSupply[_set.add(DELIMITOR)] -= balance;
-		_burn(msg.sender, _set + DELIMITOR, _amount);
+		getSupply[_epoch.add(DELIMITOR)] -= balance;
+		_burn(msg.sender, _epoch + DELIMITOR, _amount);
 	}
 
 	// modifier authorised() {

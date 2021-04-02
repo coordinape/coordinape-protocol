@@ -23,16 +23,12 @@ contract Coordinape1155 is ERC1155("some uri"), Ownable {
 	address public treasury;
 
 	mapping(uint256 => uint256) public grants;
-	mapping(uint256 => uint256) public giveSupply;
-
-	mapping(address => bool) public recurrent;
-	mapping(address => bool) public whitelist;
-	mapping(uint256 => bool) public grantCheck;
-
+	mapping(uint256 => uint256) public grantAmounts;
+	mapping(uint256 => uint256) public getSupply;
 	mapping(uint256 => Counters.Counter) private _participantsIds;
-	mapping(uint256 => mapping(address => uint8)) private _participants;
+	mapping(uint256 => mapping(address => uint8)) private _participantsPerms;
 	mapping(uint256 => mapping(uint256 => address)) private _participantsAddresses;
-	mapping(uint256 => mapping(address => uint256)) private _unspent;
+	//mapping(uint256 => mapping(address => uint256)) private _unspent;
 	mapping(uint256 => mapping(address => bool)) private _hasAllocated;
 
 	mapping(uint256 => uint256) private _amounts;
@@ -62,11 +58,11 @@ contract Coordinape1155 is ERC1155("some uri"), Ownable {
             "permissions must contain at least 'PARTICIPANT'."
         );
         require(
-            _participants[_epoch][_recipient] == Coordinape.EXTERNAL,
+            _participantsPerms[_epoch][_recipient] == Coordinape.EXTERNAL,
             "recipient is already a participant."
         );
-        _participantsAddresses[_epoch][_participantsIds[_epoch].current()] = _recipient;
-        _participants[_epoch][_recipient] = _perms;
+        _participantsPerms[_epoch][_participantsIds[_epoch].current()] = _recipient;
+        _participantsPerms[_epoch][_recipient] = _perms;
 		// do we need?
         //_unspent[epoch][recipient] = _amount;
 		
@@ -76,10 +72,10 @@ contract Coordinape1155 is ERC1155("some uri"), Ownable {
 
 	function removeParticipant(uint256 _epoch, address _recipient) external onlyOwner {
         require(
-            _participants[_epoch][_recipient] & Coordinape.RECEIVER != 0,
+            _participantsPerms[_epoch][_recipient] & Coordinape.RECEIVER != 0,
             "sender is already a non-receiver participant."
         );
-        _participants[_epoch][_recipient] = Coordinape.PARTICIPANT;
+        _participantsPerms[_epoch][_recipient] = Coordinape.PARTICIPANT;
         //_burn(recipient, _epoch, balanceOf(recipient));
     }
 
@@ -104,23 +100,25 @@ contract Coordinape1155 is ERC1155("some uri"), Ownable {
 		require(_alloc.length == _receivers.length, "array length not equal");
 		require(keccak256(abi.encodePacked(_receivers, _alloc)).recover(_sig) == _giver,
 			"Invalid signature");
-		require(isSubAmount(_alloc), "Allocations are above 100");
+		uint256 sum = getSumAmount(_epoch, _alloc);
 		checkReceivers(_epoch, _receivers);
 		for(uint256 i = 0; i < _receivers.length; i++)
 			_mint(_receivers[i], _epoch + DELIMITOR, _alloc[i], "");
+		getSupply[_epoch] += sum;
 		_hasAllocated[_epoch][_giver] = true;
 	}
 
-	function isSubAmount(uint256[] calldata _alloc) internal pure returns (bool) {
+	function getSumAmount(uuint256 _epoch, uint256[] calldata _alloc) internal view returns (uint256) {
 		uint256 sum;
 		for (uint256 i = 0 ; i < _alloc.length; i++)
 			sum += _alloc[i];
-		return sum <= 100;
+		require(sum <= _amounts[_epoch], "Allocations are above epoch limit allocation");
+		return sum;
 	}
 	
 	function checkReceivers(uint256 _epoch, address[] calldata _receivers) internal view {
 		for (uint256 i = 0 ; i < _receivers.length; i++) {
-			uint8 perms = _participants[_epoch][_receivers[i]];
+			uint8 perms = _participantsPerms[_epoch][_receivers[i]];
 			require(perms & Coordinape.PARTICIPANT != 0
 				&& perms & Coordinape.RECEIVER != 0,
 				"Receiver not participatnig or has opted out.");
@@ -128,66 +126,51 @@ contract Coordinape1155 is ERC1155("some uri"), Ownable {
 
 	}
 
-	// /*
-	//  * Create a new grant round. Will revert if previous round hasn't been funded yet
-	//  * 
-	//  * _amount: Amount of $GIVE to mint
-	//  */
-	// function mintNewSet(uint256 _amount) external onlyOwner {
-	// 	require(grantCheck[set], "Coordinapes: previous grant not supplied");
-	// 	set++;
-	// 	_mint(msg.sender, set, _amount, "");
-	// }
 
-	// /*
-	//  * Fund current month allocation from either treasury (if set) or sender
-	//  * 
-	//  * _amount: Amount of yUSD to distribute on current grant roune
-	//  */
-	// function supplyGrants(uint256 _amount) external onlyOwner {
-	// 	if (treasury != address(0))
-	// 		yUSD.transferFrom(treasury, address(this), _amount);
-	// 	else
-	// 		yUSD.transferFrom(msg.sender, address(this), _amount);
-	// 	funds[set] = funds[set].add(_amount);
-	// 	grantCheck[set] = true;
-	// }
+	/*
+	 * Fund current month allocation from either treasury (if set) or sender
+	 * 
+	 * _amount: Amount of yUSD to distribute on current grant roune
+	 */
+	function supplyGrant(uint256 _epoch, uint256 _amount) external onlyOwner {
+		require(_amount == grants[_epoch], "Amount sent does not match grant size");
+		if (treasury != address(0))
+			grantToken.transferFrom(treasury, address(this), _amount);
+		else
+			grantToken.transferFrom(msg.sender, address(this), _amount);
+		grantAmounts[_epoch] = _amount;
+	}
 
-	// /*
-	//  * Sends $GIVE tokens on a whitelisted member which get converted to $GET tokens
-	//  * 
-	//  *     _to: Receiver of $GET
-	//  * _amount: Amount of $GIVE to burn and $GET to mint
-	//  */
-	// function give(address _to, uint256 _amount) external {
-	// 	require(_to != msg.sender, "Coordinape: sender cannot be receiver");
-	// 	require(whitelist[msg.sender], "Coordinape: sender not whitelisted");
-	// 	require(whitelist[_to], "Coordinape: receiver not whitelisted");
-	// 	require(!recurrent[_to], "Coordinape: receiver cannot be recurrent");
+	/*
+	 * Burn $GET tokens to receive yUSD at the end of each grant rounds
+	 * 
+	 *     _set: Set from which to collect funds
+	 * _amount: Amount of $GET to burn to receive yUSD
+	 */
+	function get(uint256 _epoch) external {
+		uint256 balance = balanceOf(msg.sender, _epoch + DELIMITOR);
+		require(balance > 0, "No Get tokens");
+		uint256 grant = grantAmounts[_epoch];
+		require(grant > 0, "No funds");
+		uint256 supply = getSupply[_set.add(DELIMITOR)];
+		uint256 alloc = grant.mul(balance).div(supply);
 
-	// 	_burn(msg.sender, set, _amount);
-	// 	_mint(_to, set.add(DELIMITOR), _amount, "");
-	// 	giveSupply[set.add(DELIMITOR)] = giveSupply[set.add(DELIMITOR)].add(_amount);
-	// }
+		_burn(msg.sender, _set + DELIMITOR, balance);
+		grantAmounts[_epoch] -= alloc;
+		getSupply[_set.add(DELIMITOR)] -= balance;
+		grantToken.transfer(msg.sender, alloc);
+	}
 
-	// /*
-	//  * Burn $GET tokens to receive yUSD at the end of each grant rounds
-	//  * 
-	//  *     _set: Set from which to collect funds
-	//  * _amount: Amount of $GET to burn to receive yUSD
-	//  */
-	// function get(uint256 _set, uint256 _amount) external {
-	// 	require(whitelist[msg.sender], "Coordinape: sender not whitelisted");
-	// 	uint256 _funds = funds[_set];
-	// 	require(_funds > 0, "Coordinapes: No funds");
-	// 	uint256 supply = giveSupply[_set.add(DELIMITOR)];
-	// 	uint256 grant = _funds.mul(_amount).div(supply);
 
-	// 	_burn(msg.sender, _set + DELIMITOR, _amount);
-	// 	funds[_set] = funds[_set].sub(grant);
-	// 	giveSupply[_set.add(DELIMITOR)] = supply.sub(_amount);
-	// 	grantToken.transfer(msg.sender, grant);
-	// }
+	function burnGet(uint256 _epoch, uint256 _amount) external {
+		uint256 balance = balanceOf(msg.sender, _epoch + DELIMITOR);
+		require(_amount <= balance, "burn amount too large");
+
+		// add require to check state allows burn
+
+		getSupply[_set.add(DELIMITOR)] -= balance;
+		_burn(msg.sender, _set + DELIMITOR, _amount);
+	}
 
 	// modifier authorised() {
 	// 	require(authorised[msg.sender], "not authorised");

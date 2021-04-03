@@ -152,6 +152,7 @@ contract Coordinape1155 is ERC1155("some uri"), Ownable {
 	 * _amount: Amount of $GET to burn to receive yUSD
 	 */
 	function get(uint256 _epoch) external {
+		require(CoordinapeCircle(owner()).state(_epoch) == 2, "Wrong state to get");
 		uint256 balance = balanceOf(msg.sender, _epoch + DELIMITOR);
 		require(balance > 0, "No Get tokens");
 		uint256 grant = grantAmounts[_epoch];
@@ -166,16 +167,53 @@ contract Coordinape1155 is ERC1155("some uri"), Ownable {
 	}
 
 
-	function burnGet(uint256 _epoch, uint256 _amount) external {
+	function burnGet(uint256 _epoch, address _getter, uint256 _amount) external {
+		require(CoordinapeCircle(owner()).state(_epoch) == 1, "Wrong state to burn");
 		uint256 balance = balanceOf(msg.sender, _epoch + DELIMITOR);
 		require(_amount <= balance, "burn amount too large");
 
-		// add require to check state allows burn
-
-		getSupply[_epoch.add(DELIMITOR)] -= balance;
-		_burn(msg.sender, _epoch + DELIMITOR, _amount);
+		if (_getter == address(0)) {
+			getSupply[_epoch.add(DELIMITOR)] -= balance;
+			_burn(msg.sender, _epoch + DELIMITOR, _amount);
+		}
+		else {
+			uint8 perms = _participantsPerms[_epoch][_getter];
+			require(perms & Coordinape.PARTICIPANT != 0
+				&& perms & Coordinape.RECEIVER != 0,
+				"Receiver not participatnig or has opted out.");
+			Coordinape1155.safeTransferFrom(msg.sender, _getter, _epoch + DELIMITOR, _amount, "");
+		}
 	}
 
+	function safeTransferFrom(
+        address from,
+        address to,
+        uint256 id,
+        uint256 amount,
+        bytes memory data
+    )
+        public
+        virtual
+        override
+		onlyOwner
+    {
+		super.safeTransferFrom(from, to, id, amount, data);
+	}
+
+
+	function safeBatchTransferFrom(
+        address from,
+        address to,
+        uint256[] memory ids,
+        uint256[] memory amounts,
+        bytes memory data
+    )
+        public
+        virtual
+        override
+    {
+		revert();
+	}
 	// modifier authorised() {
 	// 	require(authorised[msg.sender], "not authorised");
 	// 	 _;

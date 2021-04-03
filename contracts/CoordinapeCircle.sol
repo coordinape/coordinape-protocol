@@ -113,6 +113,7 @@ contract CoordinapeCircle is ERC721, Ownable {
     }
 
     function finalise() external onlyOwner {
+        require(_epochState[_epochIds.current()] == uint8(EpochState.GIVE_DISTRIBUTED), "Cannot finalise");
         _epochState[_epochIds.current()] = uint8(EpochState.FINALISED);
     }
 
@@ -152,6 +153,10 @@ contract CoordinapeCircle is ERC721, Ownable {
             "sender didn't receive minimum vouches."
         );
         _issueInvite(_msgSender(), Coordinape.PARTICIPANT);
+    }
+
+    function burn(address _getter, uint256 _amount) external {
+        tokenSet.burnGet(_epochIds.current(), _getter, _amount);
     }
 
     /*

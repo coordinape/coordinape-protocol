@@ -12,7 +12,7 @@ import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import "./Coordinape.sol";
 import "./CoordinapeCircle.sol";
 
-contract Coordinape1155 is ERC1155("some uri"), Ownable {
+contract TokenSet is ERC1155("some uri"), Ownable {
 	using SafeMath for uint256;
 	using Counters for Counters.Counter;
 	using ECDSA for bytes32;
@@ -181,9 +181,17 @@ contract Coordinape1155 is ERC1155("some uri"), Ownable {
 			require(perms & Coordinape.PARTICIPANT != 0
 				&& perms & Coordinape.RECEIVER != 0,
 				"Receiver not participatnig or has opted out.");
-			Coordinape1155.safeTransferFrom(msg.sender, _getter, _epoch + DELIMITOR, _amount, "");
+			TokenSet.safeTransferFrom(msg.sender, _getter, _epoch + DELIMITOR, _amount, "");
 		}
 	}
+
+	function permissionsOf(uint256 _epoch, address _recipient) public view returns (uint8) {
+        return _participantsPerms[_epoch][_recipient];
+    }
+
+    function isParticipant(uint256 _epoch, address _recipient) public view returns (bool) {
+        return _participantsPerms[_epoch][_recipient] & Coordinape.PARTICIPANT != 0;
+    }
 
 	function safeTransferFrom(
         address from,

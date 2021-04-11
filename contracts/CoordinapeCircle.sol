@@ -33,7 +33,7 @@ contract CoordinapeCircle is ERC721, Ownable {
     mapping(address => uint256) private _vouches;
     mapping(address => mapping(address => bool)) private _vouchedFor;
 
-    Coordinape1155 tokenSet;
+    TokenSet public tokenSet;
 
     event EpochCreated(uint256 indexed id, uint256 end);
     event VouchCreated(address indexed recipient, address indexed sender);
@@ -57,6 +57,7 @@ contract CoordinapeCircle is ERC721, Ownable {
      */
     function invite(address recipient, uint8 _rights) external onlyOwner {
         require(balanceOf(recipient) == 0, "recipient is already invited.");
+        require(_rights != 0, "rights cannot be none");
         _vouches[recipient] = _minimumVouches;
         _issueInvite(recipient, _rights);
     }
@@ -83,7 +84,7 @@ contract CoordinapeCircle is ERC721, Ownable {
     }
 
     function setTokenSet(address _tokenSet) external onlyOwner {
-        tokenSet = Coordinape1155(_tokenSet);
+        tokenSet = TokenSet(_tokenSet);
     }
 
     function startEpoch(uint256 amount, uint256 end, uint256 _grant) external onlyOwner {
@@ -171,7 +172,7 @@ contract CoordinapeCircle is ERC721, Ownable {
         address[] memory addresses = new address[](activeMembersCount());
         uint256 j = 0;
         for (uint256 i = 1; i <= Counters.current(_inviteIds); i++) {
-            if (_exists(i)) {
+            if (_exists(i) && _invitePermissions[i] != 0) {
                 address owner = ownerOf(i);
                 addresses[j++] = owner;
             }
@@ -258,6 +259,19 @@ contract CoordinapeCircle is ERC721, Ownable {
     function _baseURI() internal view override returns (string memory) {
         return _uri;
     }
+
+    function transferFrom(address from, address to, uint256 tokenId) public override onlyOwner {
+		super.transferFrom(from, to, tokenId);
+	}
+
+	function safeTransferFrom(address from, address to, uint256 tokenId) public override onlyOwner {
+		super.safeTransferFrom(from, to, tokenId);
+	}
+
+	function safeTransferFrom(address from, address to, uint256 tokenId, bytes memory _data) public override onlyOwner {
+		super.safeTransferFrom(from, to, tokenId, _data);
+	}
+
 
     function _beforeTokenTransfer(
         address sender,

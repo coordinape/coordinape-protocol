@@ -8,14 +8,16 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 
 import "./Coordinape.sol";
 import "./CoordinapeCircle.sol";
+import "./MerkleDistributor.sol";
 
-contract TokenSet is ERC1155("some uri"), Ownable {
+contract TokenSet is ERC1155("some uri"), Ownable, MerkleDistributor {
 	using SafeMath for uint256;
 	using Counters for Counters.Counter;
-	using ECDSA for bytes32;
+	using MerkleProof for bytes32[];
 
 
 	uint256 public set;
@@ -32,7 +34,7 @@ contract TokenSet is ERC1155("some uri"), Ownable {
 	//mapping(uint256 => mapping(address => uint256)) private _unspent;
 	mapping(uint256 => mapping(address => bool)) private _hasAllocated;
 
-	mapping(uint256 => uint256) private _amounts;
+	mapping(uint256 => uint256) private _maxAlocation;
 
 	mapping(address =>  bool) public authorised;
 
@@ -49,7 +51,7 @@ contract TokenSet is ERC1155("some uri"), Ownable {
 	}
 
 	function startEpoch(uint256 _epoch, uint256 _amount, uint256 _grant) external onlyOwner {
-		_amounts[_epoch] = _amount;
+		_maxAlocation[_epoch] = _amount;
 		grants[_epoch] = _grant;
 	}
 
@@ -88,47 +90,14 @@ contract TokenSet is ERC1155("some uri"), Ownable {
         return addresses;
     }
 
-
-	// research merkle proof path could also be a nice approach, open for discussion
-	function sync(
-		uint256 _epoch,
-		address _giver,
-		address[] calldata _receivers,
-		uint256[] calldata _alloc,
-		bytes calldata _sig)
-		external onlyOwner {
+	function lockEpochMerkleRoot(uint256 _epoch, bytes32 _merkleRoot, uint256 _epochGetSupply) external onlyOwner {
 		require(CoordinapeCircle(owner()).state(_epoch) == 0, "Wrong state to sync");
-		require(_hasAllocated[_epoch][_giver], "Giver already allocated");
-		require(_alloc.length == _receivers.length, "array length not equal");
-		require(_participantsPerms[_epoch][_giver] & Coordinape.GIVER != 0, "giver cannot give");
-		require(keccak256(abi.encodePacked(_receivers, _alloc)).recover(_sig) == _giver,
-			"Invalid signature");
-		uint256 sum = getSumAmount(_epoch, _alloc);
-
-		checkReceivers(_epoch, _receivers);
-		for(uint256 i = 0; i < _receivers.length; i++)
-			_mint(_receivers[i], _epoch + DELIMITOR, _alloc[i], "");
-		getSupply[_epoch] += sum;
-		_hasAllocated[_epoch][_giver] = true;
+		require(_epochGetSupply > 0, "Get supply cannot be 0");
+		epochRoots[_epoch] = _merkleRoot;
+		getSupply[_epoch] = _epochGetSupply;
 	}
 
-	function getSumAmount(uint256 _epoch, uint256[] calldata _alloc) internal view returns (uint256) {
-		uint256 sum;
-		for (uint256 i = 0 ; i < _alloc.length; i++)
-			sum += _alloc[i];
-		require(sum <= _amounts[_epoch], "Allocations are above epoch limit allocation");
-		return sum;
-	}
 	
-	function checkReceivers(uint256 _epoch, address[] calldata _receivers) internal view {
-		for (uint256 i = 0 ; i < _receivers.length; i++) {
-			uint8 perms = _participantsPerms[_epoch][_receivers[i]];
-			require(perms & Coordinape.PARTICIPANT != 0
-				&& perms & Coordinape.RECEIVER != 0,
-				"Receiver not participatnig or has opted out.");
-		}
-
-	}
 
 
 	/*
@@ -136,13 +105,22 @@ contract TokenSet is ERC1155("some uri"), Ownable {
 	 * 
 	 * _amount: Amount of yUSD to distribute on current grant roune
 	 */
-	function supplyGrant(uint256 _epoch, uint256 _amount) external onlyOwner {
-		require(_amount == grants[_epoch], "Amount sent does not match grant size");
+	function supplyGrant(uint256 _epoch) external onlyOwner {
 		if (treasury != address(0))
-			grantToken.transferFrom(treasury, address(this), _amount);
+			grantToken.transferFrom(treasury, address(this), grants[_epoch]);
 		else
-			grantToken.transferFrom(msg.sender, address(this), _amount);
-		grantAmounts[_epoch] = _amount;
+			grantToken.transferFrom(msg.sender, address(this), grants[_epoch]);
+		grantAmounts[_epoch] = grants[_epoch];
+	}
+
+	function claim(uint256 _epoch, uint256 _index, address _account, uint256 _amount, bytes32[] memory _proof) external override {
+		require(!isClaimed(_epoch, _index), "Claimed already");
+		bytes32 node = keccak256(abi.encodePacked(_index, _account, _amount));
+		require(_proof.verify(epochRoots[_epoch], node), "Wrong proof");
+		
+		_setClaimed(_epoch, _index);
+		_mint(_account, _epoch + DELIMITOR, _amount, "");
+		emit Claimed(_epoch, _index, _account, _amount);
 	}
 
 	/*
@@ -193,6 +171,7 @@ contract TokenSet is ERC1155("some uri"), Ownable {
         return _participantsPerms[_epoch][_recipient] & Coordinape.PARTICIPANT != 0;
     }
 
+	// we could have this again as the only token minted would be grant-backed
 	function safeTransferFrom(
         address from,
         address to,

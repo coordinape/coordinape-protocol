@@ -101,21 +101,28 @@ contract CoordinapeCircle is ERC721, Ownable {
         emit EpochCreated(epochId, end);
     }
 
-    function sync(
-		address _giver,
-		address[] calldata _receivers,
-		uint256[] calldata _alloc,
-        bytes calldata _sig,
-        bool _lastSync) external onlyOwner {
-        require(block.number >= _epochEnds[_epochIds.current()], "Cannot sync yet");
-        tokenSet.sync(_epochIds.current(), _giver, _receivers, _alloc, _sig);
-        if (_lastSync)
-            _epochState[_epochIds.current()] = uint8(EpochState.GIVE_DISTRIBUTED);
+    // function sync(
+	// 	address _giver,
+	// 	address[] calldata _receivers,
+	// 	uint256[] calldata _alloc,
+    //     bytes calldata _sig,
+    //     bool _lastSync) external onlyOwner {
+    //     require(block.number >= _epochEnds[_epochIds.current()], "Cannot sync yet");
+    //     tokenSet.sync(_epochIds.current(), _giver, _receivers, _alloc, _sig);
+    //     if (_lastSync)
+    //         _epochState[_epochIds.current()] = uint8(EpochState.GIVE_DISTRIBUTED);
+    // }
+
+    function lock(bytes32 _root, uint256 _epochGetSupply) external onlyOwner {
+        require(block.number >= _epochEnds[_epochIds.current()], "Cannot lock yet");
+        tokenSet.lockEpochMerkleRoot(_epochIds.current(), _root, _epochGetSupply);
+        _epochState[_epochIds.current()] = uint8(EpochState.GIVE_DISTRIBUTED);
     }
 
     function finalise() external onlyOwner {
         require(_epochState[_epochIds.current()] == uint8(EpochState.GIVE_DISTRIBUTED), "Cannot finalise");
         _epochState[_epochIds.current()] = uint8(EpochState.FINALISED);
+        tokenSet.supplyGrant(_epochIds.current());
     }
 
     /*

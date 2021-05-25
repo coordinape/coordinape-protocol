@@ -53,7 +53,7 @@ contract TokenSet is ERC1155("some uri"), Ownable, MerkleDistributor {
 	function removeParticipant(uint256 _epoch, address _recipient) external onlyOwner {
 		require(CoordinapeCircle(owner()).permissionsOf(_recipient) & Coordinape.RECEIVER != 0,
 			"Sender is not a default receiver");
-			_participantsRemovedAddresses[_epoch][_participantsRemovedIds.current()] = _recipient;
+			_participantsRemovedAddresses[_epoch][_participantsRemovedIds[_epoch].current()] = _recipient;
 		_participantsRemovedIds[_epoch].increment();
         _notParticipantsPerms[_epoch][_recipient] = Coordinape.RECEIVER;
     }
@@ -67,7 +67,7 @@ contract TokenSet is ERC1155("some uri"), Ownable, MerkleDistributor {
         for (uint256 i = 0; i < allMembers; i++) {
 			if (_notParticipantsPerms[_epoch][totalAddresses[i]] == 0) {
             	addresses[j] = totalAddresses[i];
-				j++
+				j++;
 			}
         }
         return addresses;

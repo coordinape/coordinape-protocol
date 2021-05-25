@@ -21,20 +21,16 @@ contract TokenSet is ERC1155("some uri"), Ownable, MerkleDistributor {
 
 
 	uint256 public set;
-	uint256 constant public DELIMITOR = 2 ** 255;
 	IERC20 public grantToken;
 	address public treasury;
 
 	mapping(uint256 => uint256) public grants;
 	mapping(uint256 => uint256) public grantAmounts;
 	mapping(uint256 => uint256) public getSupply;
-	mapping(uint256 => Counters.Counter) private _participantsIds;
-	mapping(uint256 => mapping(address => uint8)) private _participantsPerms;
-	mapping(uint256 => mapping(uint256 => address)) private _participantsAddresses;
+	mapping(uint256 => Counters.Counter) private _participantsRemovedIds;
+	mapping(uint256 => mapping(address => uint8)) private _notParticipantsPerms;
+	mapping(uint256 => mapping(uint256 => address)) private _participantsRemovedAddresses;
 	//mapping(uint256 => mapping(address => uint256)) private _unspent;
-	mapping(uint256 => mapping(address => bool)) private _hasAllocated;
-
-	mapping(uint256 => uint256) private _maxAlocation;
 
 	mapping(address =>  bool) public authorised;
 
@@ -50,42 +46,29 @@ contract TokenSet is ERC1155("some uri"), Ownable, MerkleDistributor {
 		treasury = _treasury;
 	}
 
-	function startEpoch(uint256 _epoch, uint256 _amount, uint256 _grant) external onlyOwner {
-		_maxAlocation[_epoch] = _amount;
+	function startEpoch(uint256 _epoch, uint256 _grant) external onlyOwner {
 		grants[_epoch] = _grant;
 	}
 
-	function addParticipant(uint256 _epoch, address _recipient, uint8 _perms) external onlyOwner {
-        require(
-            _perms & Coordinape.PARTICIPANT != 0,
-            "permissions must contain at least 'PARTICIPANT'."
-        );
-        require(
-            _participantsPerms[_epoch][_recipient] == Coordinape.EXTERNAL,
-            "recipient is already a participant."
-        );
-        _participantsAddresses[_epoch][_participantsIds[_epoch].current()] = _recipient;
-        _participantsPerms[_epoch][_recipient] = _perms;
-		// do we need?
-        //_unspent[epoch][recipient] = _amount;
-		
-		//_mint(_recipient, _epoch, _amount[_epoch], "");
-        Counters.increment(_participantsIds[_epoch]);
-    }
-
 	function removeParticipant(uint256 _epoch, address _recipient) external onlyOwner {
-        require(
-            _participantsPerms[_epoch][_recipient] & Coordinape.RECEIVER != 0,
-            "sender is already a non-receiver participant."
-        );
-        _participantsPerms[_epoch][_recipient] = Coordinape.PARTICIPANT;
-        //_burn(recipient, _epoch, balanceOf(recipient));
+		require(CoordinapeCircle(owner()).permissionsOf(_recipient) & Coordinape.RECEIVER != 0,
+			"Sender is not a default receiver");
+			_participantsRemovedAddresses[_epoch][_participantsRemovedIds.current()] = _recipient;
+		_participantsRemovedIds[_epoch].increment();
+        _notParticipantsPerms[_epoch][_recipient] = Coordinape.RECEIVER;
     }
 
 	function participants(uint256 _epoch) public view returns (address[] memory) {
-        address[] memory addresses = new address[](Counters.current(_participantsIds[_epoch]));
-        for (uint256 i = 0; i < Counters.current(_participantsIds[_epoch]); i++) {
-            addresses[i] = _participantsAddresses[_epoch][i];
+		uint allMembers = CoordinapeCircle(owner()).activeMembersCount();
+		uint256 activeMembers = allMembers - _participantsRemovedIds[_epoch].current();
+        address[] memory addresses = new address[](activeMembers);
+		address[] memory totalAddresses = CoordinapeCircle(owner()).members();
+		uint256 j = 0;
+        for (uint256 i = 0; i < allMembers; i++) {
+			if (_notParticipantsPerms[_epoch][totalAddresses[i]] == 0) {
+            	addresses[j] = totalAddresses[i];
+				j++
+			}
         }
         return addresses;
     }
@@ -114,12 +97,14 @@ contract TokenSet is ERC1155("some uri"), Ownable, MerkleDistributor {
 	}
 
 	function claim(uint256 _epoch, uint256 _index, address _account, uint256 _amount, bytes32[] memory _proof) external override {
+		require(CoordinapeCircle(owner()).permissionsOf(_account) & Coordinape.RECEIVER != 0, "User is not default receiver");
+		require(_notParticipantsPerms[_epoch][_account] & Coordinape.RECEIVER == 0, "User opted out");
 		require(!isClaimed(_epoch, _index), "Claimed already");
 		bytes32 node = keccak256(abi.encodePacked(_index, _account, _amount));
 		require(_proof.verify(epochRoots[_epoch], node), "Wrong proof");
 		
 		_setClaimed(_epoch, _index);
-		_mint(_account, _epoch + DELIMITOR, _amount, "");
+		_mint(_account, _epoch, _amount, "");
 		emit Claimed(_epoch, _index, _account, _amount);
 	}
 
@@ -131,44 +116,30 @@ contract TokenSet is ERC1155("some uri"), Ownable, MerkleDistributor {
 	 */
 	function get(uint256 _epoch) external {
 		require(CoordinapeCircle(owner()).state(_epoch) == 2, "Wrong state to get");
-		uint256 balance = balanceOf(msg.sender, _epoch + DELIMITOR);
+		uint256 balance = balanceOf(msg.sender, _epoch);
 		require(balance > 0, "No Get tokens");
 		uint256 grant = grantAmounts[_epoch];
 		require(grant > 0, "No funds");
-		uint256 supply = getSupply[_epoch.add(DELIMITOR)];
+		uint256 supply = getSupply[_epoch];
 		uint256 alloc = grant.mul(balance).div(supply);
 
-		_burn(msg.sender, _epoch + DELIMITOR, balance);
+		_burn(msg.sender, _epoch, balance);
 		grantAmounts[_epoch] -= alloc;
-		getSupply[_epoch.add(DELIMITOR)] -= balance;
+		getSupply[_epoch] -= balance;
 		grantToken.transfer(msg.sender, alloc);
 	}
 
-
-	function burnGet(uint256 _epoch, address _getter, uint256 _amount) external {
-		require(CoordinapeCircle(owner()).state(_epoch) == 1, "Wrong state to burn");
-		uint256 balance = balanceOf(msg.sender, _epoch + DELIMITOR);
-		require(_amount <= balance, "burn amount too large");
-
-		if (_getter == address(0)) {
-			getSupply[_epoch.add(DELIMITOR)] -= balance;
-			_burn(msg.sender, _epoch + DELIMITOR, _amount);
-		}
-		else {
-			uint8 perms = _participantsPerms[_epoch][_getter];
-			require(perms & Coordinape.PARTICIPANT != 0
-				&& perms & Coordinape.RECEIVER != 0,
-				"Receiver not participatnig or has opted out.");
-			TokenSet.safeTransferFrom(msg.sender, _getter, _epoch + DELIMITOR, _amount, "");
-		}
-	}
-
 	function permissionsOf(uint256 _epoch, address _recipient) public view returns (uint8) {
-        return _participantsPerms[_epoch][_recipient];
+		uint8 defaultPerms = CoordinapeCircle(owner()).permissionsOf(_recipient);
+		if (_notParticipantsPerms[_epoch][_recipient] & Coordinape.RECEIVER == 0)
+        	return defaultPerms;
+		else
+			return 0;
     }
 
     function isParticipant(uint256 _epoch, address _recipient) public view returns (bool) {
-        return _participantsPerms[_epoch][_recipient] & Coordinape.PARTICIPANT != 0;
+        return CoordinapeCircle(owner()).permissionsOf(_recipient) & Coordinape.RECEIVER != 0 &&
+				_notParticipantsPerms[_epoch][_recipient] & Coordinape.RECEIVER == 0;
     }
 
 	// we could have this again as the only token minted would be grant-backed

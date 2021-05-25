@@ -87,7 +87,7 @@ contract CoordinapeCircle is ERC721, Ownable {
         tokenSet = TokenSet(_tokenSet);
     }
 
-    function startEpoch(uint256 amount, uint256 end, uint256 _grant) external onlyOwner {
+    function startEpoch(uint256 end, uint256 _grant) external onlyOwner {
         require(!_epochInProgress(), "another epoch is already in progress.");
         require(block.number < end, "end block must be in the future.");
 
@@ -97,7 +97,7 @@ contract CoordinapeCircle is ERC721, Ownable {
         //_epochs[epochId] = epoch;
         _epochEnds[epochId] = end;
         _epochState[epochId] = uint8(EpochState.CREATED);
-        tokenSet.startEpoch(epochId, amount, _grant);
+        tokenSet.startEpoch(epochId, _grant);
         emit EpochCreated(epochId, end);
     }
 
@@ -133,7 +133,7 @@ contract CoordinapeCircle is ERC721, Ownable {
         uint8 permissions = _invitePermissions[tokenId];
         if (_optOut)
         {
-            require(permissions & Coordinape.GIVER != 0, "Cannot optout if no givver rights");
+            require(permissions & Coordinape.GIVER != 0, "Cannot optout if no giver rights");
             tokenSet.addParticipant(_epochIds.current(), _msgSender(), permissions & ~Coordinape.RECEIVER);
         }
         else

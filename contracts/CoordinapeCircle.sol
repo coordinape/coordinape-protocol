@@ -128,17 +128,17 @@ contract CoordinapeCircle is ERC721, Ownable {
     /*
      *  Member functions
      */
-    function joinCurrentEpoch(bool _optOut) external onlyInvited onlyInProgress {
-        uint256 tokenId = _invites[_msgSender()];
-        uint8 permissions = _invitePermissions[tokenId];
-        if (_optOut)
-        {
-            require(permissions & Coordinape.GIVER != 0, "Cannot optout if no giver rights");
-            tokenSet.addParticipant(_epochIds.current(), _msgSender(), permissions & ~Coordinape.RECEIVER);
-        }
-        else
-            tokenSet.addParticipant(_epochIds.current(), _msgSender(), permissions);
-    }
+    // function joinCurrentEpoch(bool _optOut) external onlyInvited onlyInProgress {
+    //     uint256 tokenId = _invites[_msgSender()];
+    //     uint8 permissions = _invitePermissions[tokenId];
+    //     if (_optOut)
+    //     {
+    //         require(permissions & Coordinape.GIVER != 0, "Cannot optout if no giver rights");
+    //         tokenSet.addParticipant(_epochIds.current(), _msgSender(), permissions & ~Coordinape.RECEIVER);
+    //     }
+    //     else
+    //         tokenSet.addParticipant(_epochIds.current(), _msgSender(), permissions);
+    // }
 
     function leaveCurrentEpoch() external onlyInvited onlyInProgress {
         tokenSet.removeParticipant(_epochIds.current(), _msgSender());
@@ -163,9 +163,9 @@ contract CoordinapeCircle is ERC721, Ownable {
         _issueInvite(_msgSender(), Coordinape.PARTICIPANT);
     }
 
-    function burn(address _getter, uint256 _amount) external {
-        tokenSet.burnGet(_epochIds.current(), _getter, _amount);
-    }
+    // function burn(address _getter, uint256 _amount) external {
+    //     tokenSet.burnGet(_epochIds.current(), _getter, _amount);
+    // }
 
     /*
      *  View functions

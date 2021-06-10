@@ -100,40 +100,40 @@ contract AffiliateToken is ERC20, BaseWrapper {
         }
     }
 
-    function deposit() external returns (uint256) {
-        return deposit(type(uint256).max); // Deposit everything
-    }
+    // function deposit() external returns (uint256) {
+    //     return deposit(type(uint256).max); // Deposit everything
+    // }
 
-    function deposit(uint256 amount) public returns (uint256 deposited) {
-        deposited = _deposit(msg.sender, address(this), amount, true); // `true` = pull from `msg.sender`
-        uint256 shares = _sharesForValue(amount); // NOTE: Must be calculated after deposit is handled
-        _mint(msg.sender, shares);
-    }
+    // function deposit(uint256 amount) public returns (uint256 deposited) {
+    //     deposited = _deposit(msg.sender, address(this), amount, true); // `true` = pull from `msg.sender`
+    //     uint256 shares = _sharesForValue(amount); // NOTE: Must be calculated after deposit is handled
+    //     _mint(msg.sender, shares);
+    // }
 
-    function withdraw() external returns (uint256) {
-        return withdraw(balanceOf(msg.sender));
-    }
+    // function withdraw() external returns (uint256) {
+    //     return withdraw(balanceOf(msg.sender));
+    // }
 
-    function withdraw(uint256 shares) public returns (uint256) {
-        _burn(msg.sender, shares);
-        return _withdraw(address(this), msg.sender, _shareValue(shares), true); // `true` = withdraw from `bestVault`
-    }
+    // function withdraw(uint256 shares) public returns (uint256) {
+    //     _burn(msg.sender, shares);
+    //     return _withdraw(address(this), msg.sender, _shareValue(shares), true); // `true` = withdraw from `bestVault`
+    // }
 
-    function migrate() external onlyAffiliate returns (uint256) {
-        return _migrate(address(this));
-    }
+    // function migrate() external onlyAffiliate returns (uint256) {
+    //     return _migrate(address(this));
+    // }
 
-    function migrate(uint256 amount) external onlyAffiliate returns (uint256) {
-        return _migrate(address(this), amount);
-    }
+    // function migrate(uint256 amount) external onlyAffiliate returns (uint256) {
+    //     return _migrate(address(this), amount);
+    // }
 
-    function migrate(uint256 amount, uint256 maxMigrationLoss)
-        external
-        onlyAffiliate
-        returns (uint256)
-    {
-        return _migrate(address(this), amount, maxMigrationLoss);
-    }
+    // function migrate(uint256 amount, uint256 maxMigrationLoss)
+    //     external
+    //     onlyAffiliate
+    //     returns (uint256)
+    // {
+    //     return _migrate(address(this), amount, maxMigrationLoss);
+    // }
 
     /**
      * @notice Triggers an approval from owner to spends

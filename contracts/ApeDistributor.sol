@@ -1,39 +1,64 @@
 pragma solidity ^0.8.2;
 
 import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol"; 
+import "../interfaces/IApeVault.sol";
 
 contract ApeDistributor {
 	using MerkleProof for bytes32[];
+	using SafeERC20 for IERC20;
 
+	// address to approve roots for a circle
 	mapping(address => address) public approvals;
-	mapping(address => address) public circleToken;
+	// accepted tokens for given circle
+	// circle => grant token
+	mapping(address => mapping(address => bool)) public circleToken;
 
-	mapping(address => mapping(uint256 => bytes32)) public epochRoots;
-	mapping(address => mapping(uint256 => mapping(uint256 => uint256))) public epochClaimBitMap;
+	// roots following this mapping:
+	// circle address => token address => epoch ID => root
+	mapping(address =>mapping(address => mapping(uint256 => bytes32))) public epochRoots;
+	mapping(address => mapping(address => mapping(uint256 => mapping(uint256 => uint256)))) public epochClaimBitMap;
 
-	event Claimed(address circle, uint256 epoch, uint256 index, address account, uint256 amount);
+	// checkpoints following this mapping:
+	// circle => token => address => checkpoint
+	mapping(address => mapping(address => mapping(address => uint256))) public checkpoints;
 
-	function isClaimed(address _circle, uint256 _epoch, uint256 _index) public view returns(bool) {
+	event Claimed(address circle, address token, uint256 epoch, uint256 index, address account, uint256 amount);
+
+	function uploadEpochRoot(address _circle, address _token, uint256 _epoch, bytes32 _root, uint256 _amount) external {
+		require(approvals[_circle] == msg.sender, "Sender cannot upload a root");
+		require(circleToken[_circle][_token], "Token not accepted");
+		epochRoots[_circle][_token][_epoch] = _root;
+
+		//transfer in the amount of token
+	}
+
+	function isClaimed(address _circle, address _token, uint256 _epoch, uint256 _index) public view returns(bool) {
 		uint256 wordIndex = _index / 256;
 		uint256 bitIndex = _index % 256;
-		uint256 word = epochClaimBitMap[_circle][_epoch][wordIndex];
+		uint256 word = epochClaimBitMap[_circle][_token][_epoch][wordIndex];
 		uint256 bitMask = 1 << bitIndex;
 		return word & bitMask == bitMask;
 	}
 
-	function _setClaimed(address _circle, uint256 _epoch, uint256 _index) internal {
+	function _setClaimed(address _circle, address _token, uint256 _epoch, uint256 _index) internal {
 		uint256 wordIndex = _index / 256;
 		uint256 bitIndex = _index % 256;
-		epochClaimBitMap[_circle][_epoch][wordIndex] |= 1 << bitIndex;
+		epochClaimBitMap[_circle][_token][_epoch][wordIndex] |= 1 << bitIndex;
 	}
 
-	function claim(uint256 _circle, uint256 _epoch, uint256 _index, address _account, uint256 _amount, bytes32[] memory _proof) external {
-		require(!isClaimed(_circle, _epoch, _index), "Claimed already");
-		bytes32 node = keccak256(abi.encodePacked(_index, _account, _amount));
-		require(_proof.verify(epochRoots[_epoch], node), "Wrong proof");
+	function claim(address _circle, address _token, uint256 _epoch, uint256 _index, address _account, uint256 _checkpoint, bytes32[] memory _proof) external {
+		require(!isClaimed(_circle, _token, _epoch, _index), "Claimed already");
+		bytes32 node = keccak256(abi.encodePacked(_index, _account, _checkpoint));
+		require(_proof.verify(epochRoots[_circle][_token][_epoch], node), "Wrong proof");
+		uint256 currentCheckpoint = checkpoints[_circle][_token][_account];
+		require(_checkpoint > currentCheckpoint, "Given checkpoint not higher than current checkpoint");
 		
-		_setClaimed(_circle, _epoch, _index);
-		//transfer
-		emit Claimed(_epoch, _index, _account, _amount);
+		uint256 claimable = _checkpoint - currentCheckpoint;
+		checkpoints[_circle][_token][_account] = _checkpoint;
+		_setClaimed(_circle, _token, _epoch, _index);
+		IERC20(_token).safeTransfer(_account, claimable);
+		emit Claimed(_circle, _token, _epoch, _index, _account, claimable);
 	}
 }

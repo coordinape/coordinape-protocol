@@ -9,10 +9,14 @@ contract ApeDistributor {
 	using MerkleProof for bytes32[];
 	using SafeERC20 for IERC20;
 
-	// address to approve roots for a circle
+	// address to approve admins for a circle
 	mapping(address => address) public approvals;
+
+	// vault => circle => bool
+	mapping(address => mapping(address => bool)) public circlesOfVault;
+
 	// accepted tokens for given circle
-	// circle => grant token
+	// circle => grant token => bool
 	mapping(address => mapping(address => bool)) public circleToken;
 
 	// roots following this mapping:
@@ -26,12 +30,21 @@ contract ApeDistributor {
 
 	event Claimed(address circle, address token, uint256 epoch, uint256 index, address account, uint256 amount);
 
-	function uploadEpochRoot(address _circle, address _token, uint256 _epoch, bytes32 _root, uint256 _amount) external {
+	function uploadEpochRoot(
+		address _vault,
+		address _circle,
+		address _token,
+		uint256 _epoch,
+		bytes32 _root,
+		uint256 _amount,
+		uint8 _tapType)
+		external {
+		require(circlesOfVault[_vault][_circle], "Vault cannot serve circle");
 		require(approvals[_circle] == msg.sender, "Sender cannot upload a root");
 		require(circleToken[_circle][_token], "Token not accepted");
 		epochRoots[_circle][_token][_epoch] = _root;
 
-		//transfer in the amount of token
+		IApeVault(_vault).tap(_amount, _tapType);
 	}
 
 	function isClaimed(address _circle, address _token, uint256 _epoch, uint256 _index) public view returns(bool) {

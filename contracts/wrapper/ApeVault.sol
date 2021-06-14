@@ -6,10 +6,11 @@ import "../../interfaces/IApeVault.sol";
 import "./BaseWrapper.sol";
 
 contract ApeVaultWrapper is BaseWrapper, Ownable, IApeVault {
+	using SafeERC20 for VaultAPI;
 	using SafeERC20 for IERC20;
 	uint256 underlyingValue;
 	address distributor;
-	VaultAPI vault;
+	VaultAPI public vault;
 
 	constructor(
 		address _distributor,
@@ -44,16 +45,17 @@ contract ApeVaultWrapper is BaseWrapper, Ownable, IApeVault {
 	}
 
 	// if we include slippage in tapping functions, the fraction of tokens will add up
-	// adding this function to allow depositing of dust when it comes large enough
+	// adding this function to allow depositing of dust when it becomes large enough
 	function apeDepositDust() external {
 		uint256 amount = token.balanceOf(address(this));
+		underlyingValue += amount;
 		token.safeApprove(address(vault), 0);
 		token.safeApprove(address(vault), amount);
 		_deposit(address(this), address(this), amount, true);
 	}
 
 	function apeDeposit() external {
-		apeDeposit(type(uint256).max);
+		apeDeposit(token.balanceOf(msg.sender));
 	}
 
 	function apeMigrate() external onlyOwner {
@@ -61,25 +63,33 @@ contract ApeVaultWrapper is BaseWrapper, Ownable, IApeVault {
 		vault = VaultAPI(registry.latestVault(address(token)));
 	}
 
-	function tapOnlyProfitUnderlying(uint256 _tapValue, uint256 _slippage) external override onlyDistributor {
-		require(_tapValue <= profit(), "Not enough profit to cover epoch");
-		uint256 shares = _sharesForValue(_tapValue) * _slippage / 10000;
+	function tap(uint256 _value, uint256 _slippage, uint8 _type) external onlyDistributor {
+		if (_type == uint8(0))
+			_tapOnlyProfitUnderlying(_value, _slippage);
+		else if (_type == uint8(1))
+			_tapOnlyProfit(_value);
+		else if (_type == uint8(2))
+			_tapBase(_value);
+	}
+
+	function _tapOnlyProfitUnderlying(uint256 _tapValueUnderlying, uint256 _slippage) internal override {
+		require(_tapValueUnderlying <= profit(), "Not enough profit to cover epoch");
+		uint256 shares = _sharesForValue(_tapValueUnderlying) * (10000 * _slippage) / 10000;
 		uint256 withdrawn = _withdraw(address(this), distributor, shares, true);
-		require(withdrawn >= _tapValue, "Withdrawal returned less than expected");
-		token.transfer(distributor, _tapValue);
+		require(withdrawn >= _tapValueUnderlying, "Withdrawal returned less than expected");
+		token.transfer(distributor, _tapValueUnderlying);
 	}
 
-	function tapOnlyProfit(uint256 _tapValue) external override onlyDistributor {
-		require(_tapValue <= profit(), "Not enough profit to cover epoch");
-		vault.safeTransfer(distributor, _sharesForValue(_tapValue));
+	// _tapValue is vault token amount to remove
+	function _tapOnlyProfit(uint256 _tapValue) internal override {
+		require(_shareValue(_tapValue) <= profit(), "Not enough profit to cover epoch");
+		vault.safeTransfer(distributor, _tapValue);
 	}
 
-	function tap(uint256 _tapValue) external override onlyDistributor {
-		require(_tapValue <= _shareValue(token.balanceOf(address(this))),
-			"Not enough funds to cover epoch");
-		uint256 remainder = _tapValue - profit();
+	function _tapBase(uint256 _tapValue) internal override {
+		int256 remainder = _shareValue(_tapValue) - profit();
 		underlyingValue -= remainder;
-		vault.safeTransfer(distributor, _sharesForValue(_tapValue));
+		vault.safeTransfer(distributor, _tapValue);
 	}
 
 	function syncUnderlying() external onlyOwner {

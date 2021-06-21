@@ -37,6 +37,7 @@ contract ApeDistributor {
 		uint256 _epoch,
 		bytes32 _root,
 		uint256 _amount,
+		uint256 _slippage,
 		uint8 _tapType)
 		external {
 		require(circlesOfVault[_vault][_circle], "Vault cannot serve circle");
@@ -44,7 +45,7 @@ contract ApeDistributor {
 		require(circleToken[_circle][_token], "Token not accepted");
 		epochRoots[_circle][_token][_epoch] = _root;
 
-		IApeVault(_vault).tap(_amount, _tapType);
+		IApeVault(_vault).tap(_amount, _slippage, _tapType);
 	}
 
 	function updateCircleToVault(address _circle, bool _value) external {

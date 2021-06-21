@@ -65,7 +65,7 @@ contract ApeVaultWrapper is BaseWrapper, Ownable, IApeVault {
 		vault = VaultAPI(registry.latestVault(address(token)));
 	}
 
-	function tap(uint256 _value, uint256 _slippage, uint8 _type) external onlyDistributor {
+	function tap(uint256 _value, uint256 _slippage, uint8 _type) external override onlyDistributor {
 		if (_type == uint8(0))
 			_tapOnlyProfitUnderlying(_value, _slippage);
 		else if (_type == uint8(1))
@@ -74,7 +74,7 @@ contract ApeVaultWrapper is BaseWrapper, Ownable, IApeVault {
 			_tapBase(_value);
 	}
 
-	function _tapOnlyProfitUnderlying(uint256 _tapValueUnderlying, uint256 _slippage) internal override {
+	function _tapOnlyProfitUnderlying(uint256 _tapValueUnderlying, uint256 _slippage) internal {
 		require(_tapValueUnderlying <= profit(), "Not enough profit to cover epoch");
 		uint256 shares = _sharesForValue(_tapValueUnderlying) * (10000 * _slippage) / 10000;
 		uint256 withdrawn = _withdraw(address(this), distributor, shares, true);
@@ -83,14 +83,15 @@ contract ApeVaultWrapper is BaseWrapper, Ownable, IApeVault {
 	}
 
 	// _tapValue is vault token amount to remove
-	function _tapOnlyProfit(uint256 _tapValue) internal override {
+	function _tapOnlyProfit(uint256 _tapValue) internal {
 		require(_shareValue(_tapValue) <= profit(), "Not enough profit to cover epoch");
 		vault.safeTransfer(distributor, _tapValue);
 	}
 
-	function _tapBase(uint256 _tapValue) internal override {
-		int256 remainder = _shareValue(_tapValue) - profit();
-		underlyingValue -= remainder;
+	function _tapBase(uint256 _tapValue) internal {
+		int256 remainder = int256(_shareValue(_tapValue)) - int256(profit());
+		if (remainder > 0)
+			underlyingValue -= uint256(remainder);
 		vault.safeTransfer(distributor, _tapValue);
 	}
 
@@ -103,6 +104,6 @@ contract ApeVaultWrapper is BaseWrapper, Ownable, IApeVault {
 	}
 
 	function approveCircleAdmin(address _circle, address _admin) external onlyOwner {
-		ApeDistributor(distributor).updateCircleToVault(_circle, _admin);
+		ApeDistributor(distributor).updateCircleAdmin(_circle, _admin);
 	}
 }

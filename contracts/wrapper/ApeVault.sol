@@ -2,12 +2,14 @@ pragma solidity ^0.8.2;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "../../interfaces/IApeVault.sol";
+import "../ApeDistributor.sol";
 
 import "./BaseWrapper.sol";
 
 contract ApeVaultWrapper is BaseWrapper, Ownable, IApeVault {
 	using SafeERC20 for VaultAPI;
 	using SafeERC20 for IERC20;
+	
 	uint256 underlyingValue;
 	address distributor;
 	VaultAPI public vault;
@@ -96,4 +98,11 @@ contract ApeVaultWrapper is BaseWrapper, Ownable, IApeVault {
 		underlyingValue = _shareValue(token.balanceOf(address(this)));
 	}
 
+	function updateCircle(address _circle, bool _value) external onlyOwner {
+		ApeDistributor(distributor).updateCircleToVault(_circle, _value);
+	}
+
+	function approveCircleAdmin(address _circle, address _admin) external onlyOwner {
+		ApeDistributor(distributor).updateCircleToVault(_circle, _admin);
+	}
 }

@@ -47,6 +47,15 @@ contract ApeDistributor {
 		IApeVault(_vault).tap(_amount, _tapType);
 	}
 
+	function updateCircleToVault(address _circle, bool _value) external {
+		circlesOfVault[msg.sender][_circle] = _value;
+	}
+
+	function updateCircleAdmin(address _circle, address _admin) external {
+		require(circlesOfVault[msg.sender][_circle], "Circle not attached to vault");
+		approvals[_circle] = _admin;
+	}
+
 	function isClaimed(address _circle, address _token, uint256 _epoch, uint256 _index) public view returns(bool) {
 		uint256 wordIndex = _index / 256;
 		uint256 bitIndex = _index % 256;

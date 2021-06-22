@@ -57,6 +57,11 @@ contract ApeDistributor {
 		approvals[_circle] = _admin;
 	}
 
+	function updateTokensOfCircle(address _circle, address _token, bool _val) external {
+		require(approvals[_circle] == msg.sender, "Sender cannot update tokens");
+		circleToken[_circle][_token] = _val;
+	}
+
 	function isClaimed(address _circle, address _token, uint256 _epoch, uint256 _index) public view returns(bool) {
 		uint256 wordIndex = _index / 256;
 		uint256 bitIndex = _index % 256;

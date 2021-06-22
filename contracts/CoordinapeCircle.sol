@@ -33,8 +33,6 @@ contract CoordinapeCircle is ERC721, Ownable {
     mapping(address => uint256) private _vouches;
     mapping(address => mapping(address => bool)) private _vouchedFor;
 
-    TokenSet public tokenSet;
-
     event EpochCreated(uint256 indexed id, uint256 end);
     event VouchCreated(address indexed recipient, address indexed sender);
     event InviteIssued(address indexed recipient, uint8 permissions);
@@ -83,66 +81,10 @@ contract CoordinapeCircle is ERC721, Ownable {
         _minimumVouches = value;
     }
 
-    function setTokenSet(address _tokenSet) external onlyOwner {
-        tokenSet = TokenSet(_tokenSet);
-    }
-
-    function startEpoch(uint256 end, uint256 _grant) external onlyOwner {
-        require(!_epochInProgress(), "another epoch is already in progress.");
-        require(block.number < end, "end block must be in the future.");
-
-        Counters.increment(_epochIds);
-        uint256 epochId = Counters.current(_epochIds);
-        //address epoch = address(new CoordinapeEpoch(amount, end));
-        //_epochs[epochId] = epoch;
-        _epochEnds[epochId] = end;
-        _epochState[epochId] = uint8(EpochState.CREATED);
-        tokenSet.startEpoch(epochId, _grant);
-        emit EpochCreated(epochId, end);
-    }
-
-    // function sync(
-	// 	address _giver,
-	// 	address[] calldata _receivers,
-	// 	uint256[] calldata _alloc,
-    //     bytes calldata _sig,
-    //     bool _lastSync) external onlyOwner {
-    //     require(block.number >= _epochEnds[_epochIds.current()], "Cannot sync yet");
-    //     tokenSet.sync(_epochIds.current(), _giver, _receivers, _alloc, _sig);
-    //     if (_lastSync)
-    //         _epochState[_epochIds.current()] = uint8(EpochState.GIVE_DISTRIBUTED);
-    // }
-
-    function lock(bytes32 _root, uint256 _epochGetSupply) external onlyOwner {
-        require(block.number >= _epochEnds[_epochIds.current()], "Cannot lock yet");
-        tokenSet.lockEpochMerkleRoot(_epochIds.current(), _root, _epochGetSupply);
-        _epochState[_epochIds.current()] = uint8(EpochState.GIVE_DISTRIBUTED);
-    }
-
-    function finalise() external onlyOwner {
-        require(_epochState[_epochIds.current()] == uint8(EpochState.GIVE_DISTRIBUTED), "Cannot finalise");
-        _epochState[_epochIds.current()] = uint8(EpochState.FINALISED);
-        tokenSet.supplyGrant(_epochIds.current());
-    }
-
     /*
      *  Member functions
      */
-    // function joinCurrentEpoch(bool _optOut) external onlyInvited onlyInProgress {
-    //     uint256 tokenId = _invites[_msgSender()];
-    //     uint8 permissions = _invitePermissions[tokenId];
-    //     if (_optOut)
-    //     {
-    //         require(permissions & Coordinape.GIVER != 0, "Cannot optout if no giver rights");
-    //         tokenSet.addParticipant(_epochIds.current(), _msgSender(), permissions & ~Coordinape.RECEIVER);
-    //     }
-    //     else
-    //         tokenSet.addParticipant(_epochIds.current(), _msgSender(), permissions);
-    // }
 
-    function leaveCurrentEpoch() external onlyInvited onlyInProgress {
-        tokenSet.removeParticipant(_epochIds.current(), _msgSender());
-    }
 
     function vouch(address recipient) external onlyInvited {
         require(balanceOf(recipient) == 0, "recipient is already invited.");
@@ -163,9 +105,6 @@ contract CoordinapeCircle is ERC721, Ownable {
         _issueInvite(_msgSender(), Coordinape.PARTICIPANT);
     }
 
-    // function burn(address _getter, uint256 _amount) external {
-    //     tokenSet.burnGet(_epochIds.current(), _getter, _amount);
-    // }
 
     /*
      *  View functions
@@ -207,17 +146,6 @@ contract CoordinapeCircle is ERC721, Ownable {
         return _minimumVouches;
     }
 
-    // function currentEpochAddress() public view returns (address) {
-    //     return epochAddress(currentEpochId());
-    // }
-
-    function currentEpochId() public view returns (uint256) {
-        return Counters.current(_epochIds);
-    }
-
-    // function epochAddress(uint256 id) public view returns (address) {
-    //     return _epochs[id];
-    // }
 
     // should be totalActiveMembers
     function totalSupply() public view returns (uint256) {
@@ -285,18 +213,6 @@ contract CoordinapeCircle is ERC721, Ownable {
         address recipient,
         uint256 tokenId
     ) internal override {
-        // require(
-        //     recipient == address(0) || balanceOf(recipient) == 0,
-        //     "recipient is already invited."
-        // );
-        // require(
-        //     recipient == address(0) || _vouches[recipient] >= _minimumVouches,
-        //     "recipient didn't receive minimum vouches."
-        // );
-        // _invites[sender] = 0;
-        // _invites[recipient] = tokenId;
-        // if (recipient == address(0)) {
-        //     Counters.increment(_inviteBurned);
-        // }
+
     }
 }

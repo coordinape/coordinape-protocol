@@ -4,8 +4,9 @@ import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol"; 
 import "../interfaces/IApeVault.sol";
+import "./ApeAllowanceModule.sol";
 
-contract ApeDistributor {
+contract ApeDistributor is ApeAllowanceModule {
 	using MerkleProof for bytes32[];
 	using SafeERC20 for IERC20;
 
@@ -22,6 +23,7 @@ contract ApeDistributor {
 	// roots following this mapping:
 	// circle address => token address => epoch ID => root
 	mapping(address =>mapping(address => mapping(uint256 => bytes32))) public epochRoots;
+	mapping(address =>mapping(address => uint256)) public epochTracking;
 	mapping(address => mapping(address => mapping(uint256 => mapping(uint256 => uint256)))) public epochClaimBitMap;
 
 	// checkpoints following this mapping:
@@ -34,7 +36,6 @@ contract ApeDistributor {
 		address _vault,
 		address _circle,
 		address _token,
-		uint256 _epoch,
 		bytes32 _root,
 		uint256 _amount,
 		uint256 _slippage,
@@ -43,7 +44,11 @@ contract ApeDistributor {
 		require(circlesOfVault[_vault][_circle], "Vault cannot serve circle");
 		require(approvals[_circle] == msg.sender, "Sender cannot upload a root");
 		require(circleToken[_circle][_token], "Token not accepted");
-		epochRoots[_circle][_token][_epoch] = _root;
+		_isTapAllowed(_vault, _circle, _token, _amount);
+		uint256 epoch = epochTracking[_circle][_token];
+		epochRoots[_circle][_token][epoch] = _root;
+
+		epochTracking[_circle][_token]++;
 
 		IApeVault(_vault).tap(_amount, _slippage, _tapType);
 	}

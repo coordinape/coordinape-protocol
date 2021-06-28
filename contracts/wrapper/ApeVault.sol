@@ -3,6 +3,7 @@ pragma solidity ^0.8.2;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "../../interfaces/IApeVault.sol";
 import "../ApeDistributor.sol";
+import "../ApeAllowanceModule.sol";
 
 import "./BaseWrapper.sol";
 
@@ -13,14 +14,17 @@ contract ApeVaultWrapper is BaseWrapper, Ownable, IApeVault {
 	uint256 underlyingValue;
 	address distributor;
 	VaultAPI public vault;
+	ApeAllowanceModule public allowanceModule;
 
 	constructor(
 		address _distributor,
 	    address _token,
         address _registry,
+		address _allowanceModule,
         string memory name,
         string memory symbol) BaseWrapper(_token, _registry) {
 		distributor = _distributor;
+		allowanceModule = ApeAllowanceModule(_allowanceModule);
 		vault = VaultAPI(RegistryAPI(_registry).latestVault(_token));
 	}
 
@@ -45,6 +49,11 @@ contract ApeVaultWrapper is BaseWrapper, Ownable, IApeVault {
 		underlyingValue += _amount;
 		_deposit(msg.sender, address(this), _amount, true);
 	}
+
+
+	// TODO
+	// add withdraw
+	// add simple token interaction
 
 	// if we include slippage in tapping functions, the fraction of tokens will add up
 	// adding this function to allow depositing of dust when it becomes large enough
@@ -95,6 +104,10 @@ contract ApeVaultWrapper is BaseWrapper, Ownable, IApeVault {
 		vault.safeTransfer(distributor, _tapValue);
 	}
 
+	function _tapSimpleToken(uint256 _tapValue) internal {
+
+	}
+
 	function syncUnderlying() external onlyOwner {
 		underlyingValue = _shareValue(token.balanceOf(address(this)));
 	}
@@ -105,5 +118,14 @@ contract ApeVaultWrapper is BaseWrapper, Ownable, IApeVault {
 
 	function approveCircleAdmin(address _circle, address _admin) external onlyOwner {
 		ApeDistributor(distributor).updateCircleAdmin(_circle, _admin);
+	}
+
+	function updateAllowance(
+		address _circle,
+		address _token,
+		uint256 _amount,
+		uint256 _interval
+		) external onlyOwner {
+		allowanceModule.setAllowance(_circle, _token, _amount, _interval);
 	}
 }

@@ -10,7 +10,11 @@ import "./BaseWrapper.sol";
 contract ApeVaultWrapper is BaseWrapper, Ownable, IApeVault {
 	using SafeERC20 for VaultAPI;
 	using SafeERC20 for IERC20;
+
+	uint256 constant TOTAL_SHARES = 10000;
 	
+	IERC20 public simpleToken;
+
 	uint256 underlyingValue;
 	address distributor;
 	VaultAPI public vault;
@@ -21,11 +25,12 @@ contract ApeVaultWrapper is BaseWrapper, Ownable, IApeVault {
 	    address _token,
         address _registry,
 		address _allowanceModule,
+		address _simpleToken,
         string memory name,
         string memory symbol) BaseWrapper(_token, _registry) {
 		distributor = _distributor;
-		allowanceModule = ApeAllowanceModule(_allowanceModule);
 		vault = VaultAPI(RegistryAPI(_registry).latestVault(_token));
+		simpleToken = IERC20(_simpleToken);
 	}
 
 	modifier onlyDistributor() {
@@ -48,6 +53,10 @@ contract ApeVaultWrapper is BaseWrapper, Ownable, IApeVault {
 	function apeDeposit(uint256 _amount) public {
 		underlyingValue += _amount;
 		_deposit(msg.sender, address(this), _amount, true);
+	}
+
+	function apeDepositSimpleToken(uint256 _amount) public {
+		simpleToken.safeTransferFrom(msg.sender, address(this), _amount);
 	}
 
 
@@ -81,6 +90,8 @@ contract ApeVaultWrapper is BaseWrapper, Ownable, IApeVault {
 			_tapOnlyProfit(_value);
 		else if (_type == uint8(2))
 			_tapBase(_value);
+		else if (_type == uint8(3))
+			_tapSimpleToken(_value);
 	}
 
 	function _tapOnlyProfitUnderlying(uint256 _tapValueUnderlying, uint256 _slippage) internal {
@@ -105,7 +116,8 @@ contract ApeVaultWrapper is BaseWrapper, Ownable, IApeVault {
 	}
 
 	function _tapSimpleToken(uint256 _tapValue) internal {
-
+		uint256 fee = _tapValue * ApeDistributor(distributor).tierCFee() / TOTAL_SHARES;
+		simpleToken.transfer(distributor, _tapValue + fee);
 	}
 
 	function syncUnderlying() external onlyOwner {
@@ -120,12 +132,14 @@ contract ApeVaultWrapper is BaseWrapper, Ownable, IApeVault {
 		ApeDistributor(distributor).updateCircleAdmin(_circle, _admin);
 	}
 
+
+
 	function updateAllowance(
 		address _circle,
 		address _token,
 		uint256 _amount,
 		uint256 _interval
 		) external onlyOwner {
-		allowanceModule.setAllowance(_circle, _token, _amount, _interval);
+		ApeDistributor(distributor).setAllowance(_circle, _token, _amount, _interval);
 	}
 }

@@ -18,7 +18,7 @@ Tap fee function:
 
 	If profits from yield don't cover an epoch, the vault's underlying value will decrease as it is tapped into.
     
-	This means that for an epoch, we can calculate the ratio yield/full_tap. 
+	This means that for an epoch, we can calculate the ratio 1 - yield/full_tap. 
     
 	Example:
     
@@ -60,16 +60,16 @@ Tap fee function:
     
     the ratio would be 2% as they'd farm around 200 usd
     
-    This makes the yield fee be 2%
+    This makes the yield fee be 98%
     
     Tap fee would be 0.5%
     
 		For this epoch, the vault will be deducted a total of
 			total_deducted = tap_value + yield_value * yield_fee + tap_value * tap_fee
-						   = 10k       + 200          * 2%        + 9.8k      * 0.5%
-						   = 10k + 4 + 49
-						   = 10053 
-		With 53 going to coordinape
+						   = 10k       + 200          * 98%        + 9.8k      * 0.5%
+						   = 10k + 196 + 49
+						   = 10245 
+		With 245 going to coordinape
 
 4. Shitcoin
 

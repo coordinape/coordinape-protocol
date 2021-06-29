@@ -1,14 +1,20 @@
 pragma solidity ^0.8.2;
 
+import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol"; 
 import "../interfaces/IApeVault.sol";
 import "./ApeAllowanceModule.sol";
 
-contract ApeDistributor is ApeAllowanceModule {
+contract ApeDistributor is ApeAllowanceModule, Ownable {
 	using MerkleProof for bytes32[];
 	using SafeERC20 for IERC20;
+
+	uint256 public tierCFee = 250;
+	// uint256 tierBFee = 250;
+	// uint256 tierAFee = 250;
+
 
 	// address to approve admins for a circle
 	mapping(address => address) public approvals;
@@ -31,6 +37,10 @@ contract ApeDistributor is ApeAllowanceModule {
 	mapping(address => mapping(address => mapping(address => uint256))) public checkpoints;
 
 	event Claimed(address circle, address token, uint256 epoch, uint256 index, address account, uint256 amount);
+
+	function updateCFee(uint256 _newFee) external onlyOwner {
+		tierCFee = _newFee;
+	}
 
 	function uploadEpochRoot(
 		address _vault,

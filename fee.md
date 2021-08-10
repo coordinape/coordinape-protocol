@@ -79,3 +79,100 @@ Tap fee function:
     
 		total_deducted = 10k + 10k * 2.5%
 					   = 10250
+
+
+
+last meeting with trach
+
+
+Yearn
+Sushi
+Cream
+Curve
+Aave
+DAOs
+
+150 circles
+20 users on average
+20k/month/circle
+
+3M distribution / month
+
+
+60k/month from fees
+
+
+==
+25 yield based circles
+
+50M TVL @ 5% apy
+
+0.5% of 50M 
+
+250k/year
+
+40M issued
+1% => 400k
+2% => 800k
+3% => 1.2M
+4% => 1.6M
+
+
+proposal:
+- 1% from yield
+- [1;4]% from capital (tap)
+
+- affiliate fee (passive)
+
+
+13/07/21
+
+Based on yearn calc
+If we manage 50M TVL all year around with a yield around 5% (unlikely atm as apy are quite low around 5%)
+=> revenue generated would be around 210k USD / year
+
+=> if we take another 1% from yield (which would be 2.5M distributed per year)
+	25k/year
+
+assuming 3M yearly distro with smaller circle:
+We could try to hit the partner fee but will most likely not be very big
+taking a 1-4% fee (lets assume 2.5% for now) would generate 75k/month = > 900k/year
+
+Total would be near ~1.13M/year revenue
+
+
+TODO on contracts:
+vault :
+=> partnership program integration
+=> fee model finalised and implemented
+
+Circle :
+=> pseudo admin roles (role system)
+=> super admin (owner)
+=> tweak the vouching system (make it more flexible[changing vouching param...])/kicking too
+	=> optionally add a multisig-like voting system to execute proposals
+	=> allow super admins/admins to change anything (assume the responsability that admins could act maliciously)
+
+
+
+New proposal:
+static X % fee in all taps
+
++ 
+
+dynamic yield fee, the more you yield, the less we take
+
+
+
+until we find a more dynamic and optimised version we can do it as such
+if yield size is:
+- 0-10%  => 80% fee
+- 10-20% => 20% fee
+- 30-40%  => 7% fee
+- 40-50% => 4% fee
+- 50-60%  => 3% fee
+- 60-70% => 2% fee
+- 70-80%  => 1% fee
+- 80+% => 0% fee
+
+the curve drop aggressively

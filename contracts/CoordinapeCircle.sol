@@ -191,6 +191,11 @@ contract CoordinapeCircle is ERC721, Ownable {
         _;
     }
 
+
+	function updateURI(string memory newURI) public onlyOwner {
+		_setBaseURI(newURI);
+	}
+
     function _baseURI() internal view override returns (string memory) {
         return _uri;
     }

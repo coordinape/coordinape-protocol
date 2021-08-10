@@ -10,6 +10,7 @@ abstract contract ApeAllowanceModule {
 	struct CurrentAllowance {
 		uint256 debt;
 		uint256 intervalStart;
+		uint256 epochs;
 	}
 
 	// vault => circle => token => allowance
@@ -22,7 +23,8 @@ abstract contract ApeAllowanceModule {
 		address _circle,
 		address _token,
 		uint256 _amount,
-		uint256 _interval
+		uint256 _interval,
+		uint256 _epochs
 		) external {
 		allowances[msg.sender][_circle][_token] = Allowance({
 			maxAmount: _amount,
@@ -31,7 +33,8 @@ abstract contract ApeAllowanceModule {
 
 		currentAllowances[msg.sender][_circle][_token] = CurrentAllowance({
 			debt: 0,
-			intervalStart: block.timestamp
+			intervalStart: block.timestamp,
+			epochs: _epochs
 		});
 		emit AllowanceUpdated(msg.sender, _circle, _token, _amount, _interval);
 	}
@@ -45,8 +48,9 @@ abstract contract ApeAllowanceModule {
 		Allowance memory allowance = allowances[_vault][_circle][_token];
 		CurrentAllowance storage currentAllowance = currentAllowances[_vault][_circle][_token];
 
+		require(currentAllowance.epochs > 1, "Circle cannot tap anymore");
 		_updateInterval(currentAllowance, allowance);
-		require(currentAllowance.debt + _amount <= allowance.maxAmount, "Circle does not have sufficient allownace");
+		require(currentAllowance.debt + _amount <= allowance.maxAmount, "Circle does not have sufficient allowance");
 		currentAllowance.debt += _amount;
 	}
 
@@ -55,6 +59,7 @@ abstract contract ApeAllowanceModule {
 		if (elapsedTime >= _allowance.maxInterval) {
 			_currentAllowance.debt = 0;
 			_currentAllowance.intervalStart += _currentAllowance.intervalStart * (elapsedTime / _allowance.maxInterval);
+			_currentAllowance.epochs--;
 		}
 	}
 }

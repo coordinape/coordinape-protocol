@@ -78,6 +78,20 @@ contract ApeVaultWrapper is BaseWrapper, Ownable, IApeVault {
 		apeDeposit(token.balanceOf(msg.sender));
 	}
 
+	//wip
+	function apeWithdrawUnderlying(uint256 _underlyingAmount) external onlyOwner {
+		uint256 total = _shareValue(token.balanceOf(address(this)));
+		require(_underlyingAmount <= underlyingValue, "underlying amount higher than vault value");
+
+		underlyingValue -= _underlyingAmount;
+		uint256 shares = _sharesForValue(_underlyingAmount);
+		uint256 withdrawn = _withdraw(address(this), msg.sender, shares, true);
+	}
+
+	function exitVaultToken() external onlyOwner {
+		token.transfer(msg.sender, token.balanceOf(address(this)));
+	}
+
 	function apeMigrate() external onlyOwner {
 		_migrate(address(this));
 		vault = VaultAPI(registry.latestVault(address(token)));

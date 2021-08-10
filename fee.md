@@ -166,13 +166,13 @@ dynamic yield fee, the more you yield, the less we take
 
 until we find a more dynamic and optimised version we can do it as such
 if yield size is:
-- 0-10%  => 80% fee
-- 10-20% => 20% fee
-- 30-40%  => 7% fee
-- 40-50% => 4% fee
-- 50-60%  => 3% fee
-- 60-70% => 2% fee
-- 70-80%  => 1% fee
-- 80+% => 0% fee
+- 0-10%  => 80% fee on yield
+- 10-20% => 32% fee on yield
+- 30-40%  => 16% fee on yield
+- 40-50% => 8% fee on yield
+- 50-60%  => 4% fee on yield
+- 60-70% => 2.5% fee on yield
+- 70-80%  => 1% fee on yield
+- 80+% => 0% fee 
 
-the curve drop aggressively
+the curve drop aggressively making it a lot more advantageous to go full yield

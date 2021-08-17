@@ -17,6 +17,7 @@ contract ApeVaultWrapper is BaseWrapper, Ownable, IApeVault {
 
 	uint256 underlyingValue;
 	address distributor;
+	address router;
 	VaultAPI public vault;
 	ApeAllowanceModule public allowanceModule;
 
@@ -24,17 +25,21 @@ contract ApeVaultWrapper is BaseWrapper, Ownable, IApeVault {
 		address _distributor,
 	    address _token,
         address _registry,
-		address _allowanceModule,
-		address _simpleToken,
-        string memory name,
-        string memory symbol) BaseWrapper(_token, _registry) {
+		address _router,
+		address _simpleToken) BaseWrapper(_token, _registry) {
 		distributor = _distributor;
 		vault = VaultAPI(RegistryAPI(_registry).latestVault(_token));
 		simpleToken = IERC20(_simpleToken);
+		router = _router;
 	}
 
 	modifier onlyDistributor() {
 		require(msg.sender == distributor);
+		_;
+	}
+
+	modifier onlyRouter() {
+		require(msg.sender == router);
 		_;
 	}
 
@@ -136,6 +141,10 @@ contract ApeVaultWrapper is BaseWrapper, Ownable, IApeVault {
 
 	function syncUnderlying() external onlyOwner {
 		underlyingValue = _shareValue(token.balanceOf(address(this)));
+	}
+
+	function addFunds(uint256 _amount) external onlyRouter {
+		underlyingValue += _amount;
 	}
 
 	function updateCircle(address _circle, bool _value) external onlyOwner {

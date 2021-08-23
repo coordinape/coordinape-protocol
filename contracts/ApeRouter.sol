@@ -2,6 +2,7 @@ pragma solidity ^0.8.2;
 
 import {VaultAPI, BaseWrapper, RegistryAPI} from "wrapper/BaseWrapper.sol";
 import {ApeVaultFactory} from "wrapper/ApeVaultFactory.sol";
+import {ApeVault} from "wrapper/ApeVault.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 contract ApeRouter {
@@ -40,6 +41,21 @@ contract ApeRouter {
         // `receiver` now has shares of `_bestVault` as balance, converted to `token` here
         // Issue a refund if not everything was deposited
         if (depositor != address(this) && afterBal > 0) IERC20(_token).safeTransfer(depositor, afterBal);
+		ApeVault(_apeVault).addFunds(_amount);
 		emit DepositInVault(_apeVault, _token, _amount);
 	}
+
+	 /**
+     * @notice
+     *  Used to update the yearn registry.
+     * @param _registry The new _registry address.
+     */
+    function setRegistry(address _registry) external {
+        require(msg.sender == registry.governance());
+        // In case you want to override the registry instead of re-deploying
+        registry = RegistryAPI(_registry);
+        // Make sure there's no change in governance
+        // NOTE: Also avoid bricking the wrapper from setting a bad registry
+        require(msg.sender == registry.governance());
+    }
 }

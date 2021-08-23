@@ -33,6 +33,8 @@ contract ApeVaultWrapper is BaseWrapper, Ownable, IApeVault {
 		router = _router;
 	}
 
+	event ApeVaultFundWithdrawal(address indexed apeVault, address vault, uint256 _amount);
+
 	modifier onlyDistributor() {
 		require(msg.sender == distributor);
 		_;
@@ -91,10 +93,14 @@ contract ApeVaultWrapper is BaseWrapper, Ownable, IApeVault {
 		underlyingValue -= _underlyingAmount;
 		uint256 shares = _sharesForValue(_underlyingAmount);
 		uint256 withdrawn = _withdraw(address(this), msg.sender, shares, true);
+		emit ApeVaultFundWithdrawal(address(this), address(vault), shares);
 	}
 
 	function exitVaultToken() external onlyOwner {
-		token.transfer(msg.sender, token.balanceOf(address(this)));
+		underlyingValue = 0;
+		uint256 totalShares = vault.balanceOf(address(this))
+		vault.transfer(msg.sender, totalShares);
+		emit ApeVaultFundWithdrawal(address(this), address(vault), totalShares);
 	}
 
 	function apeMigrate() external onlyOwner {

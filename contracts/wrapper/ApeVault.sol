@@ -7,7 +7,7 @@ import "../ApeAllowanceModule.sol";
 
 import "./BaseWrapper.sol";
 
-contract ApeVaultWrapper is BaseWrapper, Ownable, IApeVault {
+contract ApeVaultWrapper is BaseWrapper, Ownable {
 	using SafeERC20 for VaultAPI;
 	using SafeERC20 for IERC20;
 
@@ -98,7 +98,7 @@ contract ApeVaultWrapper is BaseWrapper, Ownable, IApeVault {
 
 	function exitVaultToken() external onlyOwner {
 		underlyingValue = 0;
-		uint256 totalShares = vault.balanceOf(address(this))
+		uint256 totalShares = vault.balanceOf(address(this));
 		vault.transfer(msg.sender, totalShares);
 		emit ApeVaultFundWithdrawal(address(this), address(vault), totalShares);
 	}
@@ -108,23 +108,29 @@ contract ApeVaultWrapper is BaseWrapper, Ownable, IApeVault {
 		vault = VaultAPI(registry.latestVault(address(token)));
 	}
 
-	function tap(uint256 _value, uint256 _slippage, uint8 _type) external override onlyDistributor {
+	function tap(uint256 _value, uint256 _slippage, uint8 _type) external onlyDistributor returns(uint256) {
 		if (_type == uint8(0))
-			_tapOnlyProfitUnderlying(_value, _slippage);
-		else if (_type == uint8(1))
+			return _tapOnlyProfitUnderlying(_value, _slippage);
+		else if (_type == uint8(1)) {
 			_tapOnlyProfit(_value);
-		else if (_type == uint8(2))
+			return _value;
+		}
+		else if (_type == uint8(2)) {
 			_tapBase(_value);
+			return _value;
+		}
 		else if (_type == uint8(3))
 			_tapSimpleToken(_value);
+		return (0);
 	}
 
-	function _tapOnlyProfitUnderlying(uint256 _tapValueUnderlying, uint256 _slippage) internal {
+	function _tapOnlyProfitUnderlying(uint256 _tapValueUnderlying, uint256 _slippage) internal returns(uint256) {
 		require(_tapValueUnderlying <= profit(), "Not enough profit to cover epoch");
 		uint256 shares = _sharesForValue(_tapValueUnderlying) * (10000 * _slippage) / 10000;
 		uint256 withdrawn = _withdraw(address(this), distributor, shares, true);
 		require(withdrawn >= _tapValueUnderlying, "Withdrawal returned less than expected");
 		token.transfer(distributor, _tapValueUnderlying);
+		return shares;
 	}
 
 	// _tapValue is vault token amount to remove
@@ -167,8 +173,9 @@ contract ApeVaultWrapper is BaseWrapper, Ownable, IApeVault {
 		address _circle,
 		address _token,
 		uint256 _amount,
-		uint256 _interval
+		uint256 _interval,
+		uint256 _epochAmount
 		) external onlyOwner {
-		ApeDistributor(distributor).setAllowance(_circle, _token, _amount, _interval);
+		ApeDistributor(distributor).setAllowance(_circle, _token, _amount, _interval, _epochAmount);
 	}
 }

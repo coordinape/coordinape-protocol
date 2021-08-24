@@ -4,6 +4,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "../../interfaces/IApeVault.sol";
 import "../ApeDistributor.sol";
 import "../ApeAllowanceModule.sol";
+import "../ApeRegistry.sol";
 
 import "./BaseWrapper.sol";
 
@@ -16,32 +17,29 @@ contract ApeVaultWrapper is BaseWrapper, Ownable {
 	IERC20 public simpleToken;
 
 	uint256 underlyingValue;
-	address distributor;
-	address router;
+	address public apeRegistry;
 	VaultAPI public vault;
 	ApeAllowanceModule public allowanceModule;
 
 	constructor(
-		address _distributor,
+		address _apeRegistry,
 	    address _token,
         address _registry,
-		address _router,
 		address _simpleToken) BaseWrapper(_token, _registry) {
-		distributor = _distributor;
+		apeRegistry = _apeRegistry;
 		vault = VaultAPI(RegistryAPI(_registry).latestVault(_token));
 		simpleToken = IERC20(_simpleToken);
-		router = _router;
 	}
 
 	event ApeVaultFundWithdrawal(address indexed apeVault, address vault, uint256 _amount);
 
 	modifier onlyDistributor() {
-		require(msg.sender == distributor);
+		require(msg.sender == ApeRegistry(apeRegistry).distributor());
 		_;
 	}
 
 	modifier onlyRouter() {
-		require(msg.sender == router);
+		require(msg.sender == ApeRegistry(apeRegistry).router());
 		_;
 	}
 
@@ -124,31 +122,35 @@ contract ApeVaultWrapper is BaseWrapper, Ownable {
 		return (0);
 	}
 
+	// msg.sender is used as it is expected that caller is the distributor contract
 	function _tapOnlyProfitUnderlying(uint256 _tapValueUnderlying, uint256 _slippage) internal returns(uint256) {
 		require(_tapValueUnderlying <= profit(), "Not enough profit to cover epoch");
 		uint256 shares = _sharesForValue(_tapValueUnderlying) * (10000 * _slippage) / 10000;
-		uint256 withdrawn = _withdraw(address(this), distributor, shares, true);
+		uint256 withdrawn = _withdraw(address(this), msg.sender, shares, true);
 		require(withdrawn >= _tapValueUnderlying, "Withdrawal returned less than expected");
-		token.transfer(distributor, _tapValueUnderlying);
+		token.transfer(msg.sender, _tapValueUnderlying);
 		return shares;
 	}
 
 	// _tapValue is vault token amount to remove
+	// msg.sender is used as it is expected that caller is the distributor contract
 	function _tapOnlyProfit(uint256 _tapValue) internal {
 		require(_shareValue(_tapValue) <= profit(), "Not enough profit to cover epoch");
-		vault.safeTransfer(distributor, _tapValue);
+		vault.safeTransfer(msg.sender, _tapValue);
 	}
 
+	// msg.sender is used as it is expected that caller is the distributor contract
 	function _tapBase(uint256 _tapValue) internal {
 		int256 remainder = int256(_shareValue(_tapValue)) - int256(profit());
 		if (remainder > 0)
 			underlyingValue -= uint256(remainder);
-		vault.safeTransfer(distributor, _tapValue);
+		vault.safeTransfer(msg.sender, _tapValue);
 	}
 
+	// msg.sender is used as it is expected that caller is the distributor contract
 	function _tapSimpleToken(uint256 _tapValue) internal {
-		uint256 fee = _tapValue * ApeDistributor(distributor).tierCFee() / TOTAL_SHARES;
-		simpleToken.transfer(distributor, _tapValue + fee);
+		uint256 fee = _tapValue * ApeDistributor(msg.sender).tierCFee() / TOTAL_SHARES;
+		simpleToken.transfer(msg.sender, _tapValue + fee);
 	}
 
 	function syncUnderlying() external onlyOwner {
@@ -160,11 +162,11 @@ contract ApeVaultWrapper is BaseWrapper, Ownable {
 	}
 
 	function updateCircle(address _circle, bool _value) external onlyOwner {
-		ApeDistributor(distributor).updateCircleToVault(_circle, _value);
+		ApeDistributor(ApeRegistry(apeRegistry).distributor()).updateCircleToVault(_circle, _value);
 	}
 
 	function approveCircleAdmin(address _circle, address _admin) external onlyOwner {
-		ApeDistributor(distributor).updateCircleAdmin(_circle, _admin);
+		ApeDistributor(ApeRegistry(apeRegistry).distributor()).updateCircleAdmin(_circle, _admin);
 	}
 
 
@@ -176,6 +178,8 @@ contract ApeVaultWrapper is BaseWrapper, Ownable {
 		uint256 _interval,
 		uint256 _epochAmount
 		) external onlyOwner {
-		ApeDistributor(distributor).setAllowance(_circle, _token, _amount, _interval, _epochAmount);
+		ApeDistributor(
+			ApeRegistry(apeRegistry).distributor()
+			).setAllowance(_circle, _token, _amount, _interval, _epochAmount);
 	}
 }

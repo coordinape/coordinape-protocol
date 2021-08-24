@@ -11,6 +11,8 @@ contract ApeDistributor is ApeAllowanceModule, Ownable {
 	using MerkleProof for bytes32[];
 	using SafeERC20 for IERC20;
 
+
+	//TODO TO REMOVE 
 	uint256 public tierCFee = 250;
 	// uint256 tierBFee = 250;
 	// uint256 tierAFee = 250;

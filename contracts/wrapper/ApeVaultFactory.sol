@@ -6,19 +6,17 @@ contract ApeVaultFactory {
 	mapping(address => bool) public vaultRegistry;
 
 	address public yearnRegistry;
-	address public apeRouter;
-	address public apeDistributor;
+	address public apeRegistry;
 
 	event VaultCreated(address vault);
 
-	constructor(address _reg, address _distro, address _router) {
-		apeDistributor = _distro;
+	constructor(address _reg, address _apeReg) {
+		apeRegistry = _apeReg;
 		yearnRegistry = _reg;
-		apeRouter = _router;
 	}
 
 	function createApeVault(address _token, address _simpleToken) external {
-		ApeVaultWrapper vault = new ApeVaultWrapper(apeDistributor, _token, yearnRegistry, apeRouter, _simpleToken);
+		ApeVaultWrapper vault = new ApeVaultWrapper(apeRegistry, _token, yearnRegistry, _simpleToken);
 		vault.transferOwnership(msg.sender);
 		vaultRegistry[address(vault)] = true;
 		emit VaultCreated(address(vault));

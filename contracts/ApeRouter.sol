@@ -1,11 +1,14 @@
 pragma solidity ^0.8.2;
 
-import {VaultAPI, BaseWrapper, RegistryAPI} from "wrapper/BaseWrapper.sol";
-import {ApeVaultFactory} from "wrapper/ApeVaultFactory.sol";
-import {ApeVault} from "wrapper/ApeVault.sol";
+import {VaultAPI, BaseWrapper, RegistryAPI} from "./wrapper/BaseWrapper.sol";
+import {ApeVaultFactory} from "./wrapper/ApeVaultFactory.sol";
+import {ApeVaultWrapper} from "./wrapper/ApeVault.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 contract ApeRouter {
+	using SafeERC20 for IERC20;
+
 
 	uint256 constant MAX_UINT = type(uint256).max;
 
@@ -19,8 +22,8 @@ contract ApeRouter {
 
 	event DepositInVault(address indexed vault, address token, uint256 amount);
 
-	function delegateDeposit(address _apeVault, address _token, uint256 _amount) external {
-		VaultsAPI vault = RegistryAPI(yearnRegistry).latestVault(_token);
+	function delegateDeposit(address _apeVault, address _token, uint256 _amount) external returns(uint256 deposited) {
+		VaultAPI vault = VaultAPI(RegistryAPI(yearnRegistry).latestVault(_token));
 		require(address(vault) != address(0), "ApeRouter: No vault for token");
 		require(ApeVaultFactory(apeVaultFactory).vaultRegistry(_apeVault), "ApeRouter: Vault does not exist");
 
@@ -37,11 +40,11 @@ contract ApeRouter {
 		vault.deposit(_amount, _apeVault);
 
         uint256 afterBal = IERC20(_token).balanceOf(address(this));
-        deposited = beforeBal.sub(afterBal);
+        deposited = beforeBal - afterBal;
         // `receiver` now has shares of `_bestVault` as balance, converted to `token` here
         // Issue a refund if not everything was deposited
-        if (depositor != address(this) && afterBal > 0) IERC20(_token).safeTransfer(depositor, afterBal);
-		ApeVault(_apeVault).addFunds(_amount);
+        if (afterBal > 0) IERC20(_token).safeTransfer(msg.sender, afterBal);
+		ApeVaultWrapper(_apeVault).addFunds(_amount);
 		emit DepositInVault(_apeVault, _token, _amount);
 	}
 
@@ -51,11 +54,11 @@ contract ApeRouter {
      * @param _registry The new _registry address.
      */
     function setRegistry(address _registry) external {
-        require(msg.sender == registry.governance());
+        require(msg.sender == RegistryAPI(yearnRegistry).governance());
         // In case you want to override the registry instead of re-deploying
-        registry = RegistryAPI(_registry);
+        yearnRegistry = _registry;
         // Make sure there's no change in governance
         // NOTE: Also avoid bricking the wrapper from setting a bad registry
-        require(msg.sender == registry.governance());
+        require(msg.sender == RegistryAPI(yearnRegistry).governance());
     }
 }

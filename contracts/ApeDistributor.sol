@@ -4,7 +4,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol"; 
-import "../interfaces/IApeVault.sol";
+import "./wrapper/ApeVault.sol";
 import "./ApeAllowanceModule.sol";
 
 contract ApeDistributor is ApeAllowanceModule, Ownable {
@@ -38,6 +38,8 @@ contract ApeDistributor is ApeAllowanceModule, Ownable {
 
 	event Claimed(address circle, address token, uint256 epoch, uint256 index, address account, uint256 amount);
 
+	event apeVaultFundsTapped(address indexed apeVault, address yearnVault, uint256 amount);
+
 	function updateCFee(uint256 _newFee) external onlyOwner {
 		tierCFee = _newFee;
 	}
@@ -60,7 +62,9 @@ contract ApeDistributor is ApeAllowanceModule, Ownable {
 
 		epochTracking[_circle][_token]++;
 
-		IApeVault(_vault).tap(_amount, _slippage, _tapType);
+		uint256 sharesRemoved = ApeVaultWrapper(_vault).tap(_amount, _slippage, _tapType);
+		if (sharesRemoved > 0)
+			emit apeVaultFundsTapped(_vault, address(ApeVaultWrapper(_vault).vault()), sharesRemoved);
 	}
 
 	function updateCircleToVault(address _circle, bool _value) external {

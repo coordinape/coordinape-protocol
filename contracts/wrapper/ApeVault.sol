@@ -106,51 +106,38 @@ contract ApeVaultWrapper is BaseWrapper, Ownable {
 		vault = VaultAPI(registry.latestVault(address(token)));
 	}
 
-	function tap(uint256 _value, uint256 _slippage, uint8 _type) external onlyDistributor returns(uint256) {
-		if (_type == uint8(0))
-			return _tapOnlyProfitUnderlying(_value, _slippage);
+	function tap(uint256 _value, uint8 _type) external onlyDistributor returns(uint256) {
+		if (_type == uint8(0)) {
+			_tapOnlyProfit(_value, msg.sender);
+			return _value;
+		}
 		else if (_type == uint8(1)) {
-			_tapOnlyProfit(_value);
+			_tapBase(_value, msg.sender);
 			return _value;
 		}
-		else if (_type == uint8(2)) {
-			_tapBase(_value);
-			return _value;
-		}
-		else if (_type == uint8(3))
-			_tapSimpleToken(_value);
+		else if (_type == uint8(2))
+			_tapSimpleToken(_value, msg.sender);
 		return (0);
 	}
 
-	// msg.sender is used as it is expected that caller is the distributor contract
-	function _tapOnlyProfitUnderlying(uint256 _tapValueUnderlying, uint256 _slippage) internal returns(uint256) {
-		require(_tapValueUnderlying <= profit(), "Not enough profit to cover epoch");
-		uint256 shares = _sharesForValue(_tapValueUnderlying) * (10000 * _slippage) / 10000;
-		uint256 withdrawn = _withdraw(address(this), msg.sender, shares, true);
-		require(withdrawn >= _tapValueUnderlying, "Withdrawal returned less than expected");
-		token.transfer(msg.sender, _tapValueUnderlying);
-		return shares;
-	}
 
 	// _tapValue is vault token amount to remove
 	// msg.sender is used as it is expected that caller is the distributor contract
-	function _tapOnlyProfit(uint256 _tapValue) internal {
+	function _tapOnlyProfit(uint256 _tapValue, address _recipient) internal {
 		require(_shareValue(_tapValue) <= profit(), "Not enough profit to cover epoch");
-		vault.safeTransfer(msg.sender, _tapValue);
+		vault.safeTransfer(_recipient, _tapValue);
 	}
 
-	// msg.sender is used as it is expected that caller is the distributor contract
-	function _tapBase(uint256 _tapValue) internal {
+	function _tapBase(uint256 _tapValue, address _recipient) internal {
 		int256 remainder = int256(_shareValue(_tapValue)) - int256(profit());
 		if (remainder > 0)
 			underlyingValue -= uint256(remainder);
-		vault.safeTransfer(msg.sender, _tapValue);
+		vault.safeTransfer(_recipient, _tapValue);
 	}
 
-	// msg.sender is used as it is expected that caller is the distributor contract
-	function _tapSimpleToken(uint256 _tapValue) internal {
-		uint256 fee = _tapValue * ApeDistributor(msg.sender).tierCFee() / TOTAL_SHARES;
-		simpleToken.transfer(msg.sender, _tapValue + fee);
+	function _tapSimpleToken(uint256 _tapValue, address _recipient) internal {
+		uint256 fee = _tapValue * ApeDistributor(_recipient).tierCFee() / TOTAL_SHARES;
+		simpleToken.transfer(_recipient, _tapValue + fee);
 	}
 
 	function syncUnderlying() external onlyOwner {
@@ -159,10 +146,6 @@ contract ApeVaultWrapper is BaseWrapper, Ownable {
 
 	function addFunds(uint256 _amount) external onlyRouter {
 		underlyingValue += _amount;
-	}
-
-	function updateCircle(address _circle, bool _value) external onlyOwner {
-		ApeDistributor(ApeRegistry(apeRegistry).distributor()).updateCircleToVault(_circle, _value);
 	}
 
 	function approveCircleAdmin(address _circle, address _admin) external onlyOwner {

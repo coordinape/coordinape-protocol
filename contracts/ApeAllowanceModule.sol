@@ -48,7 +48,7 @@ abstract contract ApeAllowanceModule {
 		Allowance memory allowance = allowances[_vault][_circle][_token];
 		CurrentAllowance storage currentAllowance = currentAllowances[_vault][_circle][_token];
 
-		require(currentAllowance.epochs > 1, "Circle cannot tap anymore");
+		require(currentAllowance.epochs > 0, "Circle cannot tap anymore");
 		_updateInterval(currentAllowance, allowance);
 		require(currentAllowance.debt + _amount <= allowance.maxAmount, "Circle does not have sufficient allowance");
 		currentAllowance.debt += _amount;

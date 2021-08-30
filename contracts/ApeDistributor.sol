@@ -6,6 +6,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol"; 
 import "./wrapper/ApeVault.sol";
 import "./ApeAllowanceModule.sol";
+import {VaultAPI} from "./wrapper/BaseWrapper.sol";
 
 contract ApeDistributor is ApeAllowanceModule, Ownable {
 	using MerkleProof for bytes32[];
@@ -19,10 +20,7 @@ contract ApeDistributor is ApeAllowanceModule, Ownable {
 
 
 	// address to approve admins for a circle
-	mapping(address => address) public approvals;
-
-	// vault => circle => bool
-	mapping(address => mapping(address => bool)) public circlesOfVault;
+	mapping(address => mapping(address => address)) public vaultApprovals;
 
 	// accepted tokens for given circle
 	// circle => grant token => bool
@@ -52,11 +50,9 @@ contract ApeDistributor is ApeAllowanceModule, Ownable {
 		address _token,
 		bytes32 _root,
 		uint256 _amount,
-		uint256 _slippage,
 		uint8 _tapType)
 		external {
-		require(circlesOfVault[_vault][_circle], "Vault cannot serve circle");
-		require(approvals[_circle] == msg.sender, "Sender cannot upload a root");
+		require(vaultApprovals[_vault][_circle] == msg.sender, "Sender cannot upload a root");
 		require(circleToken[_circle][_token], "Token not accepted");
 		_isTapAllowed(_vault, _circle, _token, _amount);
 		uint256 epoch = epochTracking[_circle][_token];
@@ -64,23 +60,13 @@ contract ApeDistributor is ApeAllowanceModule, Ownable {
 
 		epochTracking[_circle][_token]++;
 
-		uint256 sharesRemoved = ApeVaultWrapper(_vault).tap(_amount, _slippage, _tapType);
+		uint256 sharesRemoved = ApeVaultWrapper(_vault).tap(_amount, _tapType);
 		if (sharesRemoved > 0)
 			emit apeVaultFundsTapped(_vault, address(ApeVaultWrapper(_vault).vault()), sharesRemoved);
 	}
 
-	function updateCircleToVault(address _circle, bool _value) external {
-		circlesOfVault[msg.sender][_circle] = _value;
-	}
-
 	function updateCircleAdmin(address _circle, address _admin) external {
-		require(circlesOfVault[msg.sender][_circle], "Circle not attached to vault");
-		approvals[_circle] = _admin;
-	}
-
-	function updateTokensOfCircle(address _circle, address _token, bool _val) external {
-		require(approvals[_circle] == msg.sender, "Sender cannot update tokens");
-		circleToken[_circle][_token] = _val;
+		vaultApprovals[msg.sender][_circle] = _admin;
 	}
 
 	function isClaimed(address _circle, address _token, uint256 _epoch, uint256 _index) public view returns(bool) {
@@ -97,7 +83,7 @@ contract ApeDistributor is ApeAllowanceModule, Ownable {
 		epochClaimBitMap[_circle][_token][_epoch][wordIndex] |= 1 << bitIndex;
 	}
 
-	function claim(address _circle, address _token, uint256 _epoch, uint256 _index, address _account, uint256 _checkpoint, bytes32[] memory _proof) external {
+	function claim(address _circle, address _token, uint256 _epoch, uint256 _index, address _account, uint256 _checkpoint, bool _redeemShares, bytes32[] memory _proof) external {
 		require(!isClaimed(_circle, _token, _epoch, _index), "Claimed already");
 		bytes32 node = keccak256(abi.encodePacked(_index, _account, _checkpoint));
 		require(_proof.verify(epochRoots[_circle][_token][_epoch], node), "Wrong proof");
@@ -109,5 +95,7 @@ contract ApeDistributor is ApeAllowanceModule, Ownable {
 		_setClaimed(_circle, _token, _epoch, _index);
 		IERC20(_token).safeTransfer(_account, claimable);
 		emit Claimed(_circle, _token, _epoch, _index, _account, claimable);
+		if (_redeemShares && msg.sender == _account)
+			VaultAPI(_token).withdraw(claimable, _account);
 	}
 }

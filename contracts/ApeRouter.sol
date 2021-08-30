@@ -24,11 +24,11 @@ contract ApeRouter {
 
 	function delegateDeposit(address _apeVault, address _token, uint256 _amount) external returns(uint256 deposited) {
 		VaultAPI vault = VaultAPI(RegistryAPI(yearnRegistry).latestVault(_token));
-		require(address(vault) != address(0), "ApeRouter: No vault for token");
+		// require(address(vault) != address(0), "ApeRouter: No vault for token");
 		require(ApeVaultFactory(apeVaultFactory).vaultRegistry(_apeVault), "ApeRouter: Vault does not exist");
+		require(address(vault) == ApeVaultWrapper(_apeVault).vault(), "ApeRouter: yearn Vault not identical");
 
         IERC20(_token).safeTransferFrom(msg.sender, address(this), _amount);
-
 
 		if (IERC20(_token).allowance(address(this), address(vault)) < _amount) {
             IERC20(_token).safeApprove(address(vault), 0); // Avoid issues with some IERC20(_token)s requiring 0
@@ -37,7 +37,7 @@ contract ApeRouter {
 
 		uint256 beforeBal = IERC20(_token).balanceOf(address(this));
         
-		vault.deposit(_amount, _apeVault);
+		uint256 sharesMinted = vault.deposit(_amount, _apeVault);
 
         uint256 afterBal = IERC20(_token).balanceOf(address(this));
         deposited = beforeBal - afterBal;

@@ -2,15 +2,17 @@
 
 pragma solidity ^0.8.2;
 
-import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin-upgradeable/contracts/token/ERC721/ERC721Upgradeable.sol";
+import "@openzeppelin-upgradeable/contracts/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 
 import "./CoordinapeRole.sol";
 import "./CoordinapeEpoch.sol";
 import "./CoordinapeTokenSet.sol";
 
-contract CoordinapeCircle is ERC721, Ownable {
+import "../interfaces/ICoordinapeCircle.sol";
+
+contract CoordinapeCircle is ERC721Upgradeable, OwnableUpgradeable, ICoordinapeCircle {
     using Counters for Counters.Counter;
 
     enum EpochState {
@@ -40,14 +42,21 @@ contract CoordinapeCircle is ERC721, Ownable {
 
     string private _uri;
 
-    constructor(
+    function initialize(
+        address owner,
         string memory name,
         string memory id,
         string memory uri,
         uint256 _minimumV
-    ) ERC721(name, id) {
+    ) public override initializer returns (bool) {
+        __ERC721_init(name, id);
+        __Ownable_init();
+        transferOwnership(owner);
+
         _uri = uri;
         _minimumVouches = _minimumV;
+
+        return true;
     }
 
     /*
@@ -192,10 +201,9 @@ contract CoordinapeCircle is ERC721, Ownable {
         _;
     }
 
-
-	function updateURI(string memory newURI) public onlyOwner {
-		_setBaseURI(newURI);
-	}
+    function updateURI(string memory newURI) public onlyOwner {
+        _setBaseURI(newURI);
+    }
 
     function _baseURI() internal view override returns (string memory) {
         return _uri;

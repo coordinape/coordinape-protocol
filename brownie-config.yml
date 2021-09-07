@@ -3,6 +3,7 @@ networks:
 
 dependencies:
     - OpenZeppelin/openzeppelin-contracts@4.0.0-rc.0
+    - OpenZeppelin/openzeppelin-contracts-upgradeable@4.3.1
 
 compiler:
     solc:
@@ -12,6 +13,7 @@ compiler:
             runs: 200
         remappings:
             - "@openzeppelin=OpenZeppelin/openzeppelin-contracts@4.0.0-rc.0"
+            - "@openzeppelin-upgradeable=OpenZeppelin/openzeppelin-contracts-upgradeable@4.3.1"
 
 autofetch_sources: true
 

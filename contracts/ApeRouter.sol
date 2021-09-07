@@ -26,7 +26,7 @@ contract ApeRouter {
 		VaultAPI vault = VaultAPI(RegistryAPI(yearnRegistry).latestVault(_token));
 		// require(address(vault) != address(0), "ApeRouter: No vault for token");
 		require(ApeVaultFactory(apeVaultFactory).vaultRegistry(_apeVault), "ApeRouter: Vault does not exist");
-		require(address(vault) == ApeVaultWrapper(_apeVault).vault(), "ApeRouter: yearn Vault not identical");
+		require(address(vault) == address(ApeVaultWrapper(_apeVault).vault()), "ApeRouter: yearn Vault not identical");
 
         IERC20(_token).safeTransferFrom(msg.sender, address(this), _amount);
 
@@ -45,7 +45,7 @@ contract ApeRouter {
         // Issue a refund if not everything was deposited
         if (afterBal > 0) IERC20(_token).safeTransfer(msg.sender, afterBal);
 		ApeVaultWrapper(_apeVault).addFunds(_amount);
-		emit DepositInVault(_apeVault, _token, _amount);
+		emit DepositInVault(_apeVault, _token, sharesMinted);
 	}
 
 	 /**

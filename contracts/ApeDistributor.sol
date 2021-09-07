@@ -20,6 +20,7 @@ contract ApeDistributor is ApeAllowanceModule, Ownable {
 
 
 	// address to approve admins for a circle
+	// vault => circle => admin address
 	mapping(address => mapping(address => address)) public vaultApprovals;
 
 	// accepted tokens for given circle
@@ -35,6 +36,8 @@ contract ApeDistributor is ApeAllowanceModule, Ownable {
 	// checkpoints following this mapping:
 	// circle => token => address => checkpoint
 	mapping(address => mapping(address => mapping(address => uint256))) public checkpoints;
+
+	event AdminApproved(address indexed vault, address indexed circle, address indexed admin);
 
 	event Claimed(address circle, address token, uint256 epoch, uint256 index, address account, uint256 amount);
 
@@ -67,6 +70,7 @@ contract ApeDistributor is ApeAllowanceModule, Ownable {
 
 	function updateCircleAdmin(address _circle, address _admin) external {
 		vaultApprovals[msg.sender][_circle] = _admin;
+		emit AdminApproved(msg.sender, _circle, _admin);
 	}
 
 	function isClaimed(address _circle, address _token, uint256 _epoch, uint256 _index) public view returns(bool) {

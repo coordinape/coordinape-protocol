@@ -86,6 +86,9 @@ contract CoordinapeCircle is ERC721, Ownable {
         _vouches[recipient] += 1;
         _vouchedFor[_msgSender()][recipient] = true;
         emit VouchCreated(recipient, _msgSender());
+        if (_vouches[recipient] >= _minimumVouches) {
+            _issueInvite(recipient, CoordinapeRole.MEMBER);
+        }
     }
 
     function enter() external {

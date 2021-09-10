@@ -55,7 +55,7 @@ contract ApeToken is ERC20("coordinape.com", "APE"), TokenAccessControl {
         );
 
         address signer = ECDSA.recover(digest, v, r, s);
-        require(signer == owner, "ERC20Permit: invalid signature");
+        require(signer == owner, "ApeToken: invalid signature");
 
         _approve(owner, spender, value);
     }

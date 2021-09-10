@@ -1,5 +1,7 @@
 from brownie import accounts, chain, reverts, Wei
-
+from eth_account.messages import encode_defunct, encode_intended_validator, SignableMessage
+from eth_abi import encode_single
+import web3
 
 def test_pausing(accounts, ApeToken):
 	ape = ApeToken.deploy({'from':accounts[0]})
@@ -44,26 +46,36 @@ def test_minting(accounts, ApeToken):
 	with reverts('AccessControl: Contract cannot mint tokens anymore'):
 		ape.mint(accounts[4], '1 ether', {'from':accounts[5]})
 
-# def generate_permit(account):
-# 	pk = account.private_key
-# 	permit_type_hash = web3.keccak(text='Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)')
-# 	base_message = web3.soliditySha3(
-# 		[]
-# 	)
-# 	for row in rows:
-#         _id = int(row[0])
-#         genes = int(row[3])
-#         base_message = web3.soliditySha3(
-#             [ 'uint256' , 'uint256' ] , 
-#             [_id, genes])
-#         message = encode_defunct(base_message)
-#         # signer's pk
-#         sig = web3.eth.account.sign_message(message, '0x1111111111111111111111111111111111111111111111119d9d8371d8675d91')
-#         data.append([row[0], row[1], row[2],row[3], web3.toHex(sig.signature)])
-#     strcsv = ''
-#     for row in data:
-#         for i in range(len(row)):
-#             strcsv += str(row[i])
-#             if i != len(row) - 1:
-#                 strcsv += ','
-#         strcsv += '\n'
+def test_permit(ApeToken, accounts, web3):
+	sig_accounts = accounts.from_mnemonic('wink fish soap tattoo riot thumb original surface rough obscure innocent junior', count=10)
+	accounts[0].transfer(to=sig_accounts[0], amount='10 ether')
+	ape = ApeToken.deploy({'from':sig_accounts[0]})
+	assert ape.balanceOf(sig_accounts[0]) == Wei('200_000_000 ether')
+
+	_from = sig_accounts[0].address
+	to = accounts[0].address
+	amount = Wei('150000 ether')
+	nonce = 0
+	deadline = 1632042916
+	sig = generate_permit(web3, sig_accounts[0], to, amount, nonce, deadline, ape.DOMAIN_SEPARATOR())
+	ape.permit(_from, to, amount, deadline, sig.v, sig.r, sig.s, {'from':accounts[2]})
+	with reverts("ApeToken: invalid signature"):
+		ape.permit(_from, to, amount, deadline, sig.v, sig.r, sig.s, {'from':accounts[2]})
+
+	deadline = 10
+	nonce = 1
+	sig = generate_permit(web3, sig_accounts[0], to, amount, nonce, deadline, ape.DOMAIN_SEPARATOR())
+	with reverts("ApeToken: expired deadline"):
+		ape.permit(_from, to, amount, deadline, sig.v, sig.r, sig.s, {'from':accounts[2]})
+
+def generate_permit(web3, _from, to, amount, nonce, deadline, domain_separator):
+	init = '\x19\x01'
+	permit_type_hash = web3.keccak(text='Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)')
+	data_hash = web3.keccak(encode_single(
+		'(bytes32,address,address,uint256,uint256,uint256)',
+		[permit_type_hash, _from.address, to, amount, nonce, deadline]
+	))
+	digest = web3.keccak(encode_single('(string,bytes32,bytes32)', [init, domain_separator, data_hash]))
+
+	sig = web3.eth.account.signHash(digest, _from.private_key)
+	return sig

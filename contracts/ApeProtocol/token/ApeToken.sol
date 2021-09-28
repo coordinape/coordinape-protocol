@@ -24,10 +24,6 @@ contract ApeToken is ERC20("coordinape.com", "APE"), TokenAccessControl {
                 address(this)
             )
         );
-
-        uint256 max = 1_000_000_000 ether;
-        uint256 toMint = max * 20 / 100;
-		ERC20._mint(msg.sender, toMint);
 	}
 
 	function cap() public view virtual returns (uint256) {
@@ -41,7 +37,7 @@ contract ApeToken is ERC20("coordinape.com", "APE"), TokenAccessControl {
 
     function mint(address _account, uint256 _amount) external isMinter(msg.sender) {
         _mint(_account, _amount);
-    } 
+    }
 
 	function permit(address owner, address spender, uint256 value, uint256 deadline, uint8 v, bytes32 r, bytes32 s) public {
         require(block.timestamp <= deadline, "ApeToken: expired deadline");

@@ -13,19 +13,13 @@ contract ApeDistributor is ApeAllowanceModule, Ownable {
 	using SafeERC20 for IERC20;
 
 
-	//TODO TO REMOVE 
-	uint256 public tierCFee = 250;
-	// uint256 tierBFee = 250;
-	// uint256 tierAFee = 250;
-
-
 	// address to approve admins for a circle
 	// vault => circle => admin address
 	mapping(address => mapping(address => address)) public vaultApprovals;
 
 	// accepted tokens for given circle
 	// circle => grant token => bool
-	mapping(address => mapping(address => bool)) public circleToken;
+	// mapping(address => mapping(address => bool)) public circleToken;
 
 	// roots following this mapping:
 	// circle address => token address => epoch ID => root
@@ -43,10 +37,6 @@ contract ApeDistributor is ApeAllowanceModule, Ownable {
 
 	event apeVaultFundsTapped(address indexed apeVault, address yearnVault, uint256 amount);
 
-	function updateCFee(uint256 _newFee) external onlyOwner {
-		tierCFee = _newFee;
-	}
-
 	function uploadEpochRoot(
 		address _vault,
 		address _circle,
@@ -56,7 +46,7 @@ contract ApeDistributor is ApeAllowanceModule, Ownable {
 		uint8 _tapType)
 		external {
 		require(vaultApprovals[_vault][_circle] == msg.sender, "Sender cannot upload a root");
-		require(circleToken[_circle][_token], "Token not accepted");
+		// require(circleToken[_circle][_token], "Token not accepted");
 		_isTapAllowed(_vault, _circle, _token, _amount);
 		uint256 epoch = epochTracking[_circle][_token];
 		epochRoots[_circle][_token][epoch] = _root;
@@ -86,7 +76,7 @@ contract ApeDistributor is ApeAllowanceModule, Ownable {
 		uint256 bitIndex = _index % 256;
 		epochClaimBitMap[_circle][_token][_epoch][wordIndex] |= 1 << bitIndex;
 	}
-
+	//TODO add claimMany
 	function claim(address _circle, address _token, uint256 _epoch, uint256 _index, address _account, uint256 _checkpoint, bool _redeemShares, bytes32[] memory _proof) external {
 		require(!isClaimed(_circle, _token, _epoch, _index), "Claimed already");
 		bytes32 node = keccak256(abi.encodePacked(_index, _account, _checkpoint));

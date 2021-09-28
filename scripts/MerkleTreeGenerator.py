@@ -1,23 +1,41 @@
-from brownie import web3
+from brownie import web3, Wei
 import csv
 import json
 
 def main():
     csv_name = 'raffle_winners.csv'
+    amounts_csv = 'amounts.csv'
     amount = 1000 * (10 ** 18)
 
-    rows = fetch_addresses(csv_name)
+    rows = fetch_data_from_csv(csv_name)
+    amount_rows = fetch_data_from_csv(amounts_csv)
     rows = fill_gap(rows)
+    amount_rows = fill_void(amount_rows)
     
-    items = generate_tree(rows, amount)
+    items = generate_tree(rows, amount_rows)
     json_merkle = json.dumps(items, indent=4, sort_keys=True)
     file = open('raffle_winner_tree.json', 'w')
     file.write(str(json_merkle))
     file.close()
 
+def gen():
+    generate_merkle_tree_json('tests/address.csv', 'tests/amounts.csv', 'tests/merkle_test')
+
+def generate_merkle_tree_json(address_csv, amounts_csv, json_name):
+    rows = fetch_data_from_csv(address_csv)
+    amount_rows = fetch_data_from_csv(amounts_csv)
+    rows = fill_gap(rows)
+    amount_rows = fill_void(amount_rows)
+    
+    items = generate_tree(rows, amount_rows)
+    json_merkle = json.dumps(items, indent=4, sort_keys=True)
+    file = open(json_name + '.json', 'w')
+    file.write(str(json_merkle))
+    file.close()
+
 def generate_leaf(index, account, amount):
     return web3.soliditySha3(
-        [ 'uint256' , 'address', 'uint256'], [index, web3.toChecksumAddress(account), amount])
+        [ 'uint256' , 'address', 'uint256'], [index, web3.toChecksumAddress(account), Wei(amount)])
 
 def compute_node(h1, h2):
     if h1 <= h2:
@@ -27,7 +45,7 @@ def compute_node(h1, h2):
         return web3.soliditySha3(
             [ 'bytes32' , 'bytes32'], [h2, h1])
 
-def fetch_addresses(file_name):
+def fetch_data_from_csv(file_name):
     rows = []
     with open(file_name) as csvfile:
         reader = csv.reader(csvfile)
@@ -43,14 +61,22 @@ def fill_gap(rows):
         rows.append(['0x0000000000000000000000000000000000000000'])
     return rows
 
-def generate_tree(rows, amount):
+def fill_void(rows):
+    entries = 1
+    while len(rows) >= entries:
+        entries *= 2
+    for i in range(entries - len(rows)):
+        rows.append([0])
+    return rows
+
+def generate_tree(rows, amount_rows):
     items = {'claims':{}}
     leaves = []
     index = 0
-    for row in rows:
-        leaves.append(generate_leaf(index, row[0], amount))
+    for row, amount in zip(rows, amount_rows):
+        leaves.append(generate_leaf(index, row[0], amount[0]))
         if row[0] != '0x0000000000000000000000000000000000000000':
-            items['claims'].setdefault(row[0], {'index':index, 'amount':amount, 'proof':[]})
+            items['claims'].setdefault(row[0], {'index':index, 'amount':amount[0], 'proof':[]})
         index += 1
     level = 0
     while len(leaves) > 1:

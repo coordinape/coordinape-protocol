@@ -1,10 +1,11 @@
 pragma solidity ^0.8.2;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "../../interfaces/IApeVault.sol";
+import "../../../interfaces/IApeVault.sol";
 import "../ApeDistributor.sol";
 import "../ApeAllowanceModule.sol";
 import "../ApeRegistry.sol";
+import "../FeeRegistry.sol";
 
 import "./BaseWrapper.sol";
 
@@ -16,7 +17,9 @@ contract ApeVaultWrapper is BaseWrapper, Ownable {
 	
 	IERC20 public simpleToken;
 
-	uint256 underlyingValue;
+	mapping(address => bool) public hasAccess;
+
+	uint256 public underlyingValue;
 	address public apeRegistry;
 	VaultAPI public vault;
 	ApeAllowanceModule public allowanceModule;
@@ -31,7 +34,7 @@ contract ApeVaultWrapper is BaseWrapper, Ownable {
 		simpleToken = IERC20(_simpleToken);
 	}
 
-	event ApeVaultFundWithdrawal(address indexed apeVault, address vault, uint256 _amount);
+	event ApeVaultFundWithdrawal(address indexed apeVault, address vault, uint256 _amount, bool underlying);
 
 	modifier onlyDistributor() {
 		require(msg.sender == ApeRegistry(apeRegistry).distributor());
@@ -44,43 +47,29 @@ contract ApeVaultWrapper is BaseWrapper, Ownable {
 	}
 
 	function _shareValue(uint256 numShares) internal view returns (uint256) {
-		return vault.pricePerShare() * numShares / 1e18;
+		return vault.pricePerShare() * numShares / (10**uint256(vault.decimals()));
     }
 
     function _sharesForValue(uint256 amount) internal view returns (uint256) {
-		return amount * 1e18 / vault.pricePerShare();
+		return amount * (10**uint256(vault.decimals())) / vault.pricePerShare();
     }
 
 	function profit() public view returns(uint256) {
-		return _shareValue(token.balanceOf(address(this))) - underlyingValue;
+		uint256 totalValue = _shareValue(token.balanceOf(address(this)));
+		require(totalValue >= underlyingValue, "no profit. Underperforming vault");
+		return totalValue - underlyingValue;
 	}
 
-	function apeDeposit(uint256 _amount) public {
-		underlyingValue += _amount;
-		_deposit(msg.sender, address(this), _amount, true);
+	function _profit() internal view returns(uint256) {
+		uint256 totalValue = _shareValue(token.balanceOf(address(this)));
+		if (totalValue <= underlyingValue)
+			return 0;
+		else
+			return totalValue - underlyingValue;
 	}
 
 	function apeDepositSimpleToken(uint256 _amount) public {
 		simpleToken.safeTransferFrom(msg.sender, address(this), _amount);
-	}
-
-
-	// TODO
-	// add withdraw
-	// add simple token interaction
-
-	// if we include slippage in tapping functions, the fraction of tokens will add up
-	// adding this function to allow depositing of dust when it becomes large enough
-	function apeDepositDust() external {
-		uint256 amount = token.balanceOf(address(this));
-		underlyingValue += amount;
-		token.safeApprove(address(vault), 0);
-		token.safeApprove(address(vault), amount);
-		_deposit(address(this), address(this), amount, true);
-	}
-
-	function apeDeposit() external {
-		apeDeposit(token.balanceOf(msg.sender));
 	}
 
 	//wip
@@ -91,14 +80,21 @@ contract ApeVaultWrapper is BaseWrapper, Ownable {
 		underlyingValue -= _underlyingAmount;
 		uint256 shares = _sharesForValue(_underlyingAmount);
 		uint256 withdrawn = _withdraw(address(this), msg.sender, shares, true);
-		emit ApeVaultFundWithdrawal(address(this), address(vault), shares);
+		emit ApeVaultFundWithdrawal(address(this), address(vault), shares, true);
 	}
 
-	function exitVaultToken() external onlyOwner {
+	function exitVaultToken(bool _underlying) external onlyOwner {
 		underlyingValue = 0;
 		uint256 totalShares = vault.balanceOf(address(this));
-		vault.transfer(msg.sender, totalShares);
-		emit ApeVaultFundWithdrawal(address(this), address(vault), totalShares);
+		if (_underlying) {
+			totalShares = _withdraw(address(this), msg.sender, vault.balanceOf(address(this)), true);
+			emit ApeVaultFundWithdrawal(address(this), address(vault), totalShares, true);
+		}
+		else {
+			totalShares = vault.balanceOf(address(this));
+			vault.transfer(msg.sender, totalShares);
+			emit ApeVaultFundWithdrawal(address(this), address(vault), totalShares, false);
+		}
 	}
 
 	function apeMigrate() external onlyOwner {
@@ -122,21 +118,21 @@ contract ApeVaultWrapper is BaseWrapper, Ownable {
 
 
 	// _tapValue is vault token amount to remove
-	// msg.sender is used as it is expected that caller is the distributor contract
 	function _tapOnlyProfit(uint256 _tapValue, address _recipient) internal {
 		require(_shareValue(_tapValue) <= profit(), "Not enough profit to cover epoch");
 		vault.safeTransfer(_recipient, _tapValue);
 	}
 
 	function _tapBase(uint256 _tapValue, address _recipient) internal {
-		int256 remainder = int256(_shareValue(_tapValue)) - int256(profit());
-		if (remainder > 0)
-			underlyingValue -= uint256(remainder);
+		uint256 underlyingTapValue = _shareValue(_tapValue);
+		uint256 profit = _profit();
+		//if (underlyingTapValue > profit)
+			underlyingValue -= underlyingTapValue /*- profit*/;
 		vault.safeTransfer(_recipient, _tapValue);
 	}
 
 	function _tapSimpleToken(uint256 _tapValue, address _recipient) internal {
-		uint256 fee = _tapValue * ApeDistributor(_recipient).tierCFee() / TOTAL_SHARES;
+		uint256 fee = _tapValue * FeeRegistry(ApeRegistry(apeRegistry).feeRegistry()).staticFee() / TOTAL_SHARES;
 		simpleToken.transfer(_recipient, _tapValue + fee);
 	}
 
@@ -151,8 +147,6 @@ contract ApeVaultWrapper is BaseWrapper, Ownable {
 	function approveCircleAdmin(address _circle, address _admin) external onlyOwner {
 		ApeDistributor(ApeRegistry(apeRegistry).distributor()).updateCircleAdmin(_circle, _admin);
 	}
-
-
 
 	function updateAllowance(
 		address _circle,

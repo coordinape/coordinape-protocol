@@ -5,8 +5,9 @@ import {ApeVaultFactory} from "./wrapper/ApeVaultFactory.sol";
 import {ApeVaultWrapper} from "./wrapper/ApeVault.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract ApeRouter {
+contract ApeRouter is Ownable {
 	using SafeERC20 for IERC20;
 
 
@@ -24,7 +25,7 @@ contract ApeRouter {
 
 	function delegateDeposit(address _apeVault, address _token, uint256 _amount) external returns(uint256 deposited) {
 		VaultAPI vault = VaultAPI(RegistryAPI(yearnRegistry).latestVault(_token));
-		// require(address(vault) != address(0), "ApeRouter: No vault for token");
+		require(address(vault) != address(0), "ApeRouter: No vault for token");
 		require(ApeVaultFactory(apeVaultFactory).vaultRegistry(_apeVault), "ApeRouter: Vault does not exist");
 		require(address(vault) == address(ApeVaultWrapper(_apeVault).vault()), "ApeRouter: yearn Vault not identical");
 
@@ -43,9 +44,17 @@ contract ApeRouter {
         deposited = beforeBal - afterBal;
         // `receiver` now has shares of `_bestVault` as balance, converted to `token` here
         // Issue a refund if not everything was deposited
-        if (afterBal > 0) IERC20(_token).safeTransfer(msg.sender, afterBal);
-		ApeVaultWrapper(_apeVault).addFunds(_amount);
+
+		// adding protocol removal call
+        //if (afterBal > 0) IERC20(_token).safeTransfer(msg.sender, afterBal);
+
+
+		ApeVaultWrapper(_apeVault).addFunds(deposited);
 		emit DepositInVault(_apeVault, _token, sharesMinted);
+	}
+
+	function removeTokens(address _token) external onlyOwner {
+		IERC20(_token).transfer(msg.sender, IERC20(_token).balanceOf(address(this)));
 	}
 
 	 /**
@@ -53,12 +62,12 @@ contract ApeRouter {
      *  Used to update the yearn registry.
      * @param _registry The new _registry address.
      */
-    function setRegistry(address _registry) external {
-        require(msg.sender == RegistryAPI(yearnRegistry).governance());
+    function setRegistry(address _registry) external onlyOwner {
+        //require(msg.sender == RegistryAPI(yearnRegistry).governance());
         // In case you want to override the registry instead of re-deploying
         yearnRegistry = _registry;
         // Make sure there's no change in governance
         // NOTE: Also avoid bricking the wrapper from setting a bad registry
-        require(msg.sender == RegistryAPI(yearnRegistry).governance());
+        //require(msg.sender == RegistryAPI(yearnRegistry).governance());
     }
 }

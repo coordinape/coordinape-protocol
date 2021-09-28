@@ -12,7 +12,7 @@ import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 
 import "./Coordinape.sol";
 import "./CoordinapeCircle.sol";
-import "./MerkleDistributor.sol";
+import "../ApeProtocol/MerkleDistributor.sol";
 
 contract TokenSet is ERC1155("some uri"), Ownable, MerkleDistributor {
 	using SafeMath for uint256;

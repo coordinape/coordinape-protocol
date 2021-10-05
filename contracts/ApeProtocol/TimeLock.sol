@@ -20,6 +20,10 @@ contract TimeLock is Ownable {
 
 	event CallExecuted(bytes32 indexed id, address target, bytes data);
 
+	constructor(uint256 _minDelay) {
+		minDelay = _minDelay;
+	}
+
 
 	modifier itself() {
 		require(msg.sender == address(this), "TimeLock: Caller is not contract itself");

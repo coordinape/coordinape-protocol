@@ -5,7 +5,6 @@ import json
 def main():
     csv_name = 'raffle_winners.csv'
     amounts_csv = 'amounts.csv'
-    amount = 1000 * (10 ** 18)
 
     rows = fetch_data_from_csv(csv_name)
     amount_rows = fetch_data_from_csv(amounts_csv)

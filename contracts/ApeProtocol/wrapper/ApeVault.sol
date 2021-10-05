@@ -126,8 +126,7 @@ contract ApeVaultWrapper is BaseWrapper, Ownable {
 	function _tapBase(uint256 _tapValue, address _recipient) internal {
 		uint256 underlyingTapValue = _shareValue(_tapValue);
 		uint256 profit = _profit();
-		//if (underlyingTapValue > profit)
-			underlyingValue -= underlyingTapValue /*- profit*/;
+		underlyingValue -= underlyingTapValue - profit;
 		vault.safeTransfer(_recipient, _tapValue);
 	}
 
@@ -157,6 +156,6 @@ contract ApeVaultWrapper is BaseWrapper, Ownable {
 		) external onlyOwner {
 		ApeDistributor(
 			ApeRegistry(apeRegistry).distributor()
-			).setAllowance(_circle, _token, _amount, _interval, _epochAmount);
+		).setAllowance(_circle, _token, _amount, _interval, _epochAmount);
 	}
 }

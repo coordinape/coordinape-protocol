@@ -38,7 +38,7 @@ def yearn_reg():
 
 @pytest.fixture()
 def ape_reg(ApeRegistry, minter):
-    return ApeRegistry.deploy({'from':minter})
+    return ApeRegistry.deploy(0, {'from':minter})
 
 @pytest.fixture()
 def ape_factory(ApeVaultFactory, ape_reg, yearn_reg, minter):

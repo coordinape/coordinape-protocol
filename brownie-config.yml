@@ -21,3 +21,5 @@ reports:
         - Ownable
         - Context
         - Counters
+
+autofetch_sources: true

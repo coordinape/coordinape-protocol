@@ -4,10 +4,18 @@ from eth_abi import encode_single
 import web3
 
 def setup_protocol(ape_reg, ape_fee, ape_distro, ape_router, ape_factory, minter):
-    ape_reg.setFeeRegistry(ape_fee, {'from':minter})
-    ape_reg.setRouter(ape_router, {'from':minter})
-    ape_reg.setDistributor(ape_distro, {'from':minter})
-    ape_reg.setFactory(ape_factory, {'from':minter})
+    set_fee_call = ape_reg.setFeeRegistry.encode_input(ape_fee)
+    set_router_call = ape_reg.setRouter.encode_input(ape_router)
+    set_distro_call = ape_reg.setDistributor.encode_input(ape_distro)
+    set_factory_call = ape_reg.setFactory.encode_input(ape_factory)
+    ape_reg.schedule(ape_reg, set_fee_call, '', '', 0, {'from':minter})
+    ape_reg.schedule(ape_reg, set_router_call, '', '', 0, {'from':minter})
+    ape_reg.schedule(ape_reg, set_distro_call, '', '', 0, {'from':minter})
+    ape_reg.schedule(ape_reg, set_factory_call, '', '', 0, {'from':minter})
+    ape_reg.execute(ape_reg, set_fee_call, '', '', 0, {'from':minter})
+    ape_reg.execute(ape_reg, set_router_call, '', '', 0, {'from':minter})
+    ape_reg.execute(ape_reg, set_distro_call, '', '', 0, {'from':minter})
+    ape_reg.execute(ape_reg, set_factory_call, '', '', 0, {'from':minter})
 
 def test_vault_creation(ape_reg, ape_fee, ape_distro, ape_router, ape_factory, big_usdc, usdc, ApeVaultWrapper, minter):
     setup_protocol(ape_reg, ape_fee, ape_distro, ape_router, ape_factory, minter)

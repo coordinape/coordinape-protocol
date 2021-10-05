@@ -8,6 +8,8 @@ contract ApeRegistry is TimeLock {
 	address public distributor;
 	address public factory;
 
+	constructor(uint256 _minDelay) TimeLock(_minDelay) {}
+
 	function setFeeRegistry(address _registry) external itself {
 		feeRegistry = _registry;
 	}

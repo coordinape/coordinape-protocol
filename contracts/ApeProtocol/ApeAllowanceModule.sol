@@ -5,6 +5,7 @@ abstract contract ApeAllowanceModule {
 	struct Allowance {
 		uint256 maxAmount;
 		uint256 maxInterval;
+		//uint256 tapType; // 0 pure profit | 1 any | 2 shitcoins 
 	}
 
 	struct CurrentAllowance {
@@ -19,6 +20,7 @@ abstract contract ApeAllowanceModule {
 
 	event AllowanceUpdated(address vault, address circle, address token, uint256 amount, uint256 interval);
 
+	// TODO add tap type checks
 	function setAllowance(
 		address _circle,
 		address _token,

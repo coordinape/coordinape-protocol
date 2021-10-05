@@ -30,7 +30,8 @@ contract ApeVaultWrapper is BaseWrapper, Ownable {
         address _registry,
 		address _simpleToken) BaseWrapper(_token, _registry) {
 		apeRegistry = _apeRegistry;
-		vault = VaultAPI(RegistryAPI(_registry).latestVault(_token));
+		if (_token != address(0))
+			vault = VaultAPI(RegistryAPI(_registry).latestVault(_token));
 		simpleToken = IERC20(_simpleToken);
 	}
 
@@ -74,13 +75,11 @@ contract ApeVaultWrapper is BaseWrapper, Ownable {
 
 	//wip
 	function apeWithdrawUnderlying(uint256 _underlyingAmount) external onlyOwner {
-		uint256 total = _shareValue(token.balanceOf(address(this)));
 		require(_underlyingAmount <= underlyingValue, "underlying amount higher than vault value");
 
 		underlyingValue -= _underlyingAmount;
-		uint256 shares = _sharesForValue(_underlyingAmount);
-		uint256 withdrawn = _withdraw(address(this), msg.sender, shares, true);
-		emit ApeVaultFundWithdrawal(address(this), address(vault), shares, true);
+		uint256 withdrawn = _withdraw(address(this), msg.sender, _underlyingAmount, true);
+		emit ApeVaultFundWithdrawal(address(this), address(vault), _underlyingAmount, true);
 	}
 
 	function exitVaultToken(bool _underlying) external onlyOwner {
@@ -118,18 +117,23 @@ contract ApeVaultWrapper is BaseWrapper, Ownable {
 
 
 	// _tapValue is vault token amount to remove
+	// TODO add fee
+	// TODO add recipient for fee
 	function _tapOnlyProfit(uint256 _tapValue, address _recipient) internal {
 		require(_shareValue(_tapValue) <= profit(), "Not enough profit to cover epoch");
 		vault.safeTransfer(_recipient, _tapValue);
 	}
 
+	// TODO add fee
+	// TODO add recipient for fee
 	function _tapBase(uint256 _tapValue, address _recipient) internal {
 		uint256 underlyingTapValue = _shareValue(_tapValue);
-		uint256 profit = _profit();
-		underlyingValue -= underlyingTapValue - profit;
+		uint256 profit_ = _profit();
+		underlyingValue -= underlyingTapValue - profit_;
 		vault.safeTransfer(_recipient, _tapValue);
 	}
 
+	// TODO add recipient for fee
 	function _tapSimpleToken(uint256 _tapValue, address _recipient) internal {
 		uint256 fee = _tapValue * FeeRegistry(ApeRegistry(apeRegistry).feeRegistry()).staticFee() / TOTAL_SHARES;
 		simpleToken.transfer(_recipient, _tapValue + fee);

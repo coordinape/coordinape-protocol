@@ -2,10 +2,13 @@ from brownie import accounts, chain, reverts, Wei
 from eth_account.messages import encode_defunct, encode_intended_validator, SignableMessage
 from eth_abi import encode_single
 import web3
+import time
 
 def test_pausing(accounts, ApeToken):
 	ape = ApeToken.deploy({'from':accounts[0]})
-	assert ape.balanceOf(accounts[0]) == Wei('200_000_000 ether')
+	# Fund some APE tokens
+	ape.addMinters([accounts[1].address], {'from':accounts[0]})
+	ape.mint(accounts[0], '20 ether', {'from':accounts[1]})
 
 	ape.transfer(accounts[1], Wei('1 ether'), {'from':accounts[0]})
 	with reverts('Ownable: caller is not the owner'):
@@ -22,7 +25,6 @@ def test_pausing(accounts, ApeToken):
 
 def test_minting(accounts, ApeToken):
 	ape = ApeToken.deploy({'from':accounts[0]})
-	assert ape.balanceOf(accounts[0]) == Wei('200_000_000 ether')
 
 	with reverts('AccessControl: Cannot mint'):
 		ape.mint(accounts[4], '20 ether', {'from':accounts[1]})
@@ -50,13 +52,15 @@ def test_permit(ApeToken, accounts, web3):
 	sig_accounts = accounts.from_mnemonic('wink fish soap tattoo riot thumb original surface rough obscure innocent junior', count=10)
 	accounts[0].transfer(to=sig_accounts[0], amount='10 ether')
 	ape = ApeToken.deploy({'from':sig_accounts[0]})
-	assert ape.balanceOf(sig_accounts[0]) == Wei('200_000_000 ether')
+	# Fund some APE tokens
+	ape.addMinters([accounts[1].address], {'from':sig_accounts[0]})
+	ape.mint(accounts[2], '20 ether', {'from':accounts[1]})
 
 	_from = sig_accounts[0].address
 	to = accounts[0].address
 	amount = Wei('150000 ether')
 	nonce = 0
-	deadline = 1632042916
+	deadline = int(time.time()) + 3600
 	sig = generate_permit(web3, sig_accounts[0], to, amount, nonce, deadline, ape.DOMAIN_SEPARATOR())
 	ape.permit(_from, to, amount, deadline, sig.v, sig.r, sig.s, {'from':accounts[2]})
 	with reverts("ApeToken: invalid signature"):

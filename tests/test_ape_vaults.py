@@ -100,7 +100,7 @@ def test_migrate():
 def test_circle_allowance(ape_reg, ape_fee, ape_distro, ape_router, ape_factory, big_usdc, usdc, ApeVaultWrapper, minter, interface):
     setup_protocol(ape_reg, ape_fee, ape_distro, ape_router, ape_factory, minter)
     user = accounts[0]
-    circle = '0x0000000000000000000000000000000000000001'
+    circle = '0x1'
     token = usdc
     amount = 20_000_000_000
     interval = 60 * 60 * 14 # 14 days
@@ -117,7 +117,7 @@ def test_vault_circle_admin(ape_reg, ape_fee, ape_distro, ape_router, ape_factor
     user = accounts[0]
     tx = ape_factory.createApeVault(usdc, '0x0000000000000000000000000000000000000000', {'from':user})
     ape_vault = ApeVaultWrapper.at(tx.new_contracts[0])
-    circle = '0x0000000000000000000000000000000000000001'
+    circle = '0x1'
     ape_vault.approveCircleAdmin(circle, user, {'from':user})
     assert ape_distro.vaultApprovals(ape_vault, circle) == user
     ape_vault.approveCircleAdmin(circle, ape_vault, {'from':user})
@@ -128,6 +128,6 @@ def test_tap_revert(ape_reg, ape_fee, ape_distro, ape_router, ape_factory, big_u
     user = accounts[0]
     tx = ape_factory.createApeVault(usdc, '0x0000000000000000000000000000000000000000', {'from':user})
     ape_vault = ApeVaultWrapper.at(tx.new_contracts[0])
-    circle = '0x0000000000000000000000000000000000000001'
+    circle = '0x1'
     with reverts(''):
         ape_vault.tap(10, 1, {'from':user})

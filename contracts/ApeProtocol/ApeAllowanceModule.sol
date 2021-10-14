@@ -15,14 +15,14 @@ abstract contract ApeAllowanceModule {
 	}
 
 	// vault => circle => token => allowance
-	mapping(address => mapping(address => mapping(address => Allowance))) public allowances;
-	mapping(address => mapping(address => mapping(address => CurrentAllowance))) public currentAllowances;
+	mapping(address => mapping(bytes32 => mapping(address => Allowance))) public allowances;
+	mapping(address => mapping(bytes32 => mapping(address => CurrentAllowance))) public currentAllowances;
 
-	event AllowanceUpdated(address vault, address circle, address token, uint256 amount, uint256 interval);
+	event AllowanceUpdated(address vault, bytes32 circle, address token, uint256 amount, uint256 interval);
 
 	// TODO add tap type checks
 	function setAllowance(
-		address _circle,
+		bytes32 _circle,
 		address _token,
 		uint256 _amount,
 		uint256 _interval,
@@ -43,7 +43,7 @@ abstract contract ApeAllowanceModule {
 
 	function _isTapAllowed(
 		address _vault,
-		address _circle,
+		bytes32 _circle,
 		address _token,
 		uint256 _amount
 		) internal {
@@ -56,11 +56,25 @@ abstract contract ApeAllowanceModule {
 		currentAllowance.debt += _amount;
 	}
 
+	// function _updateInterval(CurrentAllowance storage _currentAllowance, Allowance memory _allowance) internal {
+	// 	uint256 elapsedTime = block.timestamp - _currentAllowance.intervalStart;
+	// 	if (elapsedTime > _allowance.maxInterval) {
+	// 		_currentAllowance.debt = 0;
+	// 		_currentAllowance.intervalStart += _allowance.maxInterval * (elapsedTime / _allowance.maxInterval);
+	// 		_currentAllowance.epochs--;
+	// 	}
+	// }
+
+
+	
+	// WIP
 	function _updateInterval(CurrentAllowance storage _currentAllowance, Allowance memory _allowance) internal {
-		uint256 elapsedTime = block.timestamp - _currentAllowance.intervalStart;
-		if (elapsedTime >= _allowance.maxInterval) {
+		uint _intervalStart = _currentAllowance.intervalStart;
+		uint256 elapsedTime = block.timestamp - _intervalStart;
+		uint256 nextInterval = _intervalStart + _allowance.maxInterval;
+		if (block.timestamp > nextInterval) {
 			_currentAllowance.debt = 0;
-			_currentAllowance.intervalStart += _currentAllowance.intervalStart * (elapsedTime / _allowance.maxInterval);
+			_currentAllowance.intervalStart += _allowance.maxInterval * (elapsedTime / _allowance.maxInterval);
 			_currentAllowance.epochs--;
 		}
 	}

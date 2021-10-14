@@ -15,7 +15,7 @@ contract ApeDistributor is ApeAllowanceModule, Ownable {
 
 	// address to approve admins for a circle
 	// vault => circle => admin address
-	mapping(address => mapping(address => address)) public vaultApprovals;
+	mapping(address => mapping(bytes32 => address)) public vaultApprovals;
 
 	// accepted tokens for given circle
 	// circle => grant token => bool
@@ -23,23 +23,25 @@ contract ApeDistributor is ApeAllowanceModule, Ownable {
 
 	// roots following this mapping:
 	// circle address => token address => epoch ID => root
-	mapping(address =>mapping(address => mapping(uint256 => bytes32))) public epochRoots;
-	mapping(address =>mapping(address => uint256)) public epochTracking;
-	mapping(address => mapping(address => mapping(uint256 => mapping(uint256 => uint256)))) public epochClaimBitMap;
+	mapping(bytes32 =>mapping(address => mapping(uint256 => bytes32))) public epochRoots;
+	mapping(bytes32 =>mapping(address => uint256)) public epochTracking;
+	mapping(bytes32 => mapping(address => mapping(uint256 => mapping(uint256 => uint256)))) public epochClaimBitMap;
+
+	mapping(bytes32 => mapping(address => uint256)) public circleAlloc;
 
 	// checkpoints following this mapping:
 	// circle => token => address => checkpoint
-	mapping(address => mapping(address => mapping(address => uint256))) public checkpoints;
+	mapping(bytes32 => mapping(address => mapping(address => uint256))) public checkpoints;
 
-	event AdminApproved(address indexed vault, address indexed circle, address indexed admin);
+	event AdminApproved(address indexed vault, bytes32 indexed circle, address indexed admin);
 
-	event Claimed(address circle, address token, uint256 epoch, uint256 index, address account, uint256 amount);
+	event Claimed(bytes32 circle, address token, uint256 epoch, uint256 index, address account, uint256 amount);
 
 	event apeVaultFundsTapped(address indexed apeVault, address yearnVault, uint256 amount);
 
 	function uploadEpochRoot(
 		address _vault,
-		address _circle,
+		bytes32 _circle,
 		address _token,
 		bytes32 _root,
 		uint256 _amount,
@@ -53,18 +55,19 @@ contract ApeDistributor is ApeAllowanceModule, Ownable {
 		epochRoots[_circle][_token][epoch] = _root;
 
 		epochTracking[_circle][_token]++;
+		circleAlloc[_circle][token] += _amount;
 
 		uint256 sharesRemoved = ApeVaultWrapper(_vault).tap(_amount, _tapType);
 		if (sharesRemoved > 0)
 			emit apeVaultFundsTapped(_vault, address(ApeVaultWrapper(_vault).vault()), sharesRemoved);
 	}
 
-	function updateCircleAdmin(address _circle, address _admin) external {
+	function updateCircleAdmin(bytes32 _circle, address _admin) external {
 		vaultApprovals[msg.sender][_circle] = _admin;
 		emit AdminApproved(msg.sender, _circle, _admin);
 	}
 
-	function isClaimed(address _circle, address _token, uint256 _epoch, uint256 _index) public view returns(bool) {
+	function isClaimed(bytes32 _circle, address _token, uint256 _epoch, uint256 _index) public view returns(bool) {
 		uint256 wordIndex = _index / 256;
 		uint256 bitIndex = _index % 256;
 		uint256 word = epochClaimBitMap[_circle][_token][_epoch][wordIndex];
@@ -72,13 +75,13 @@ contract ApeDistributor is ApeAllowanceModule, Ownable {
 		return word & bitMask == bitMask;
 	}
 
-	function _setClaimed(address _circle, address _token, uint256 _epoch, uint256 _index) internal {
+	function _setClaimed(bytes32 _circle, address _token, uint256 _epoch, uint256 _index) internal {
 		uint256 wordIndex = _index / 256;
 		uint256 bitIndex = _index % 256;
 		epochClaimBitMap[_circle][_token][_epoch][wordIndex] |= 1 << bitIndex;
 	}
 	//TODO add claimMany
-	function claim(address _circle, address _token, uint256 _epoch, uint256 _index, address _account, uint256 _checkpoint, bool _redeemShares, bytes32[] memory _proof) external {
+	function claim(bytes32 _circle, address _token, uint256 _epoch, uint256 _index, address _account, uint256 _checkpoint, bool _redeemShares, bytes32[] memory _proof) external {
 		require(!isClaimed(_circle, _token, _epoch, _index), "Claimed already");
 		bytes32 node = keccak256(abi.encodePacked(_index, _account, _checkpoint));
 		require(_proof.verify(epochRoots[_circle][_token][_epoch], node), "Wrong proof");
@@ -86,11 +89,14 @@ contract ApeDistributor is ApeAllowanceModule, Ownable {
 		require(_checkpoint > currentCheckpoint, "Given checkpoint not higher than current checkpoint");
 		
 		uint256 claimable = _checkpoint - currentCheckpoint;
+		require(claimable <= circleAlloc[_circle][_token], "Can't claim more than circle has to give");
+		circleAlloc[_circle][_token] -= claimable;
 		checkpoints[_circle][_token][_account] = _checkpoint;
 		_setClaimed(_circle, _token, _epoch, _index);
-		IERC20(_token).safeTransfer(_account, claimable);
-		emit Claimed(_circle, _token, _epoch, _index, _account, claimable);
 		if (_redeemShares && msg.sender == _account)
 			VaultAPI(_token).withdraw(claimable, _account);
+		else
+			IERC20(_token).safeTransfer(_account, claimable);
+		emit Claimed(_circle, _token, _epoch, _index, _account, claimable);
 	}
-}
+}	

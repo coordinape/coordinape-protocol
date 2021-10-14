@@ -7,6 +7,7 @@ contract ApeRegistry is TimeLock {
 	address public router;
 	address public distributor;
 	address public factory;
+	address public treasury;
 
 	constructor(uint256 _minDelay) TimeLock(_minDelay) {}
 
@@ -24,5 +25,9 @@ contract ApeRegistry is TimeLock {
 
 	function setFactory(address _factory) external itself {
 		factory = _factory;
+	}
+
+	function setTreasury(address _treasury) external itself {
+		treasury = _treasury;
 	}
 }

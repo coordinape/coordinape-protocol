@@ -136,7 +136,8 @@ contract ApeVaultWrapper is BaseWrapper, Ownable {
 	// TODO add recipient for fee
 	function _tapSimpleToken(uint256 _tapValue, address _recipient) internal {
 		uint256 fee = _tapValue * FeeRegistry(ApeRegistry(apeRegistry).feeRegistry()).staticFee() / TOTAL_SHARES;
-		simpleToken.transfer(_recipient, _tapValue + fee);
+		simpleToken.transfer(_recipient, _tapValue);
+		simpleToken.transfer(ApeRegistry(apeRegistry).treasury(), fee);
 	}
 
 	function syncUnderlying() external onlyOwner {
@@ -147,12 +148,12 @@ contract ApeVaultWrapper is BaseWrapper, Ownable {
 		underlyingValue += _amount;
 	}
 
-	function approveCircleAdmin(address _circle, address _admin) external onlyOwner {
+	function approveCircleAdmin(bytes32 _circle, address _admin) external onlyOwner {
 		ApeDistributor(ApeRegistry(apeRegistry).distributor()).updateCircleAdmin(_circle, _admin);
 	}
 
 	function updateAllowance(
-		address _circle,
+		bytes32 _circle,
 		address _token,
 		uint256 _amount,
 		uint256 _interval,

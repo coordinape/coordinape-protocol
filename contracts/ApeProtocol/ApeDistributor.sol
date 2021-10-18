@@ -55,7 +55,7 @@ contract ApeDistributor is ApeAllowanceModule, Ownable {
 		epochRoots[_circle][_token][epoch] = _root;
 
 		epochTracking[_circle][_token]++;
-		circleAlloc[_circle][token] += _amount;
+		circleAlloc[_circle][_token] += _amount;
 
 		uint256 sharesRemoved = ApeVaultWrapper(_vault).tap(_amount, _tapType);
 		if (sharesRemoved > 0)

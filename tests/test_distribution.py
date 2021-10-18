@@ -91,7 +91,7 @@ def test_allowance_interval(ape_reg, ape_fee, ape_distro, ape_router, ape_factor
     token = usdc_vault
     grant = Wei('20_000_000_000')
     interval = 60 * 60 * 24 * 14 # 14 days
-    epochs = 2
+    epochs = 5
     root = '0x1838e0c6251730868cce6768e2062af0e72f79409a1f7011351bd2c1535e2a5c'
     ape_vault.updateAllowance(circle, token, grant, interval, epochs, {'from':user})
     admin = accounts[1]
@@ -108,6 +108,9 @@ def test_allowance_interval(ape_reg, ape_fee, ape_distro, ape_router, ape_factor
     chain.sleep(interval + 1)
     ape_distro.uploadEpochRoot(ape_vault, circle, token, root, grant // 2, TAP_BASE, {'from': admin})
     with reverts('Circle does not have sufficient allowance'):
+        ape_distro.uploadEpochRoot(ape_vault, circle, token, root, grant, TAP_BASE, {'from': admin})
+    for i in range(4):
+        chain.sleep(interval + 1)
         ape_distro.uploadEpochRoot(ape_vault, circle, token, root, grant, TAP_BASE, {'from': admin})
     chain.sleep(interval + 1)
     with reverts('Circle cannot tap anymore'):

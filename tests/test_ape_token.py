@@ -5,7 +5,8 @@ import web3
 
 def test_pausing(accounts, ApeToken):
 	ape = ApeToken.deploy({'from':accounts[0]})
-	assert ape.balanceOf(accounts[0]) == Wei('200_000_000 ether')
+	ape.addMinters([accounts[0]], {'from':accounts[0]})
+	ape.mint(accounts[0], '10000 ether', {'from':accounts[0]})
 
 	ape.transfer(accounts[1], Wei('1 ether'), {'from':accounts[0]})
 	with reverts('Ownable: caller is not the owner'):
@@ -22,7 +23,6 @@ def test_pausing(accounts, ApeToken):
 
 def test_minting(accounts, ApeToken):
 	ape = ApeToken.deploy({'from':accounts[0]})
-	assert ape.balanceOf(accounts[0]) == Wei('200_000_000 ether')
 
 	with reverts('AccessControl: Cannot mint'):
 		ape.mint(accounts[4], '20 ether', {'from':accounts[1]})
@@ -50,7 +50,8 @@ def test_permit(ApeToken, accounts, web3):
 	sig_accounts = accounts.from_mnemonic('wink fish soap tattoo riot thumb original surface rough obscure innocent junior', count=10)
 	accounts[0].transfer(to=sig_accounts[0], amount='10 ether')
 	ape = ApeToken.deploy({'from':sig_accounts[0]})
-	assert ape.balanceOf(sig_accounts[0]) == Wei('200_000_000 ether')
+	ape.addMinters([accounts[0]], {'from':sig_accounts[0]})
+	ape.mint(accounts[0], '10000000 ether', {'from':accounts[0]})
 
 	_from = sig_accounts[0].address
 	to = accounts[0].address

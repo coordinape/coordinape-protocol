@@ -56,13 +56,7 @@ contract ApeVaultWrapper is BaseWrapper, Ownable {
     }
 
 	function profit() public view returns(uint256) {
-		uint256 totalValue = _shareValue(token.balanceOf(address(this)));
-		require(totalValue >= underlyingValue, "no profit. Underperforming vault");
-		return totalValue - underlyingValue;
-	}
-
-	function _profit() internal view returns(uint256) {
-		uint256 totalValue = _shareValue(token.balanceOf(address(this)));
+		uint256 totalValue = _shareValue(vault.balanceOf(address(this)));
 		if (totalValue <= underlyingValue)
 			return 0;
 		else
@@ -121,23 +115,27 @@ contract ApeVaultWrapper is BaseWrapper, Ownable {
 	// TODO add recipient for fee
 	function _tapOnlyProfit(uint256 _tapValue, address _recipient) internal {
 		require(_shareValue(_tapValue) <= profit(), "Not enough profit to cover epoch");
+		uint256 fee = FeeRegistry(ApeRegistry(apeRegistry).feeRegistry()).getVariableFee(_tapValue, _tapValue)
 		vault.safeTransfer(_recipient, _tapValue);
+		vault.safeTransfer(ApeRegistry(apeRegistry).treasury(), _tapValue * fee / TOTAL_SHARES);
 	}
 
 	// TODO add fee
 	// TODO add recipient for fee
 	function _tapBase(uint256 _tapValue, address _recipient) internal {
 		uint256 underlyingTapValue = _shareValue(_tapValue);
-		uint256 profit_ = _profit();
-		underlyingValue -= underlyingTapValue - profit_;
+		uint256 profit_ = profit();
+		uint256 fee = FeeRegistry(ApeRegistry(apeRegistry).feeRegistry()).getVariableFee(profit_, underlyingTapValue)
+		underlyingValue -= underlyingTapValue * (TOTAL_SHARES + fee) / TOTAL_SHARES - profit_;
 		vault.safeTransfer(_recipient, _tapValue);
+		vault.safeTransfer(ApeRegistry(apeRegistry).treasury(), _tapValue * fee / TOTAL_SHARES);
 	}
 
 	// TODO add recipient for fee
 	function _tapSimpleToken(uint256 _tapValue, address _recipient) internal {
-		uint256 fee = _tapValue * FeeRegistry(ApeRegistry(apeRegistry).feeRegistry()).staticFee() / TOTAL_SHARES;
+		uint256 feeAmount = _tapValue * FeeRegistry(ApeRegistry(apeRegistry).feeRegistry()).staticFee() / TOTAL_SHARES;
 		simpleToken.transfer(_recipient, _tapValue);
-		simpleToken.transfer(ApeRegistry(apeRegistry).treasury(), fee);
+		simpleToken.transfer(ApeRegistry(apeRegistry).treasury(), feeAmount);
 	}
 
 	function syncUnderlying() external onlyOwner {

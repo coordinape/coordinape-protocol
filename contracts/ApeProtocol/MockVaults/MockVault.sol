@@ -80,7 +80,7 @@ contract MockVault is ERC20("VaultToken", "VT") {
 			uint256 _amount = amount * balanceOf(address(this)) / token.balanceOf(address(this));
 			_mint(recipient, _amount);
 		}
-		token.transferFrom(recipient, address(this), amount);
+		token.transferFrom(msg.sender, address(this), amount);
 	}
 
     // NOTE: Vyper produces multiple signatures for a given function with "default" args
@@ -93,19 +93,19 @@ contract MockVault is ERC20("VaultToken", "VT") {
 	}
 
     function withdraw(uint256 maxShares, address recipient) public returns (uint256) {
-		require(maxShares <= balanceOf(recipient) && maxShares > 0);
+		require(maxShares <= balanceOf(msg.sender) && maxShares > 0);
 		uint256 amount = maxShares * token.balanceOf(address(this)) / totalSupply();
-		_burn(recipient, maxShares);
+		_burn(msg.sender, maxShares);
 		token.transfer(recipient, amount);
 	}
 
-	function goodHarvest() external {
-		uint256 toMint = token.totalSupply() * 5 / 100;
+	function goodHarvest(uint256 _apr) external {
+		uint256 toMint = token.balanceOf(address(this)) * _apr / 100;
 		token.mint(toMint);
 	}
 
-	function badHarvest() external {
-		uint256 toBurn = token.totalSupply() * 5 / 100;
+	function badHarvest(uint256 _apr) external {
+		uint256 toBurn = token.balanceOf(address(this)) * _apr / 100;
 		token.burn(toBurn);
 	}
 }

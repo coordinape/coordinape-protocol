@@ -56,8 +56,10 @@ contract ApeDistributor is ApeAllowanceModule, Ownable {
 
 		epochTracking[_circle][_token]++;
 		circleAlloc[_circle][_token] += _amount;
-
+		uint256 beforeBal = IERC20(_token).balanceOf(address(this));
 		uint256 sharesRemoved = ApeVaultWrapper(_vault).tap(_amount, _tapType);
+		uint256 afterBal = IERC20(_token).balanceOf(address(this));
+		require(afterBal - beforeBal == _amount, "Did not receive correct amount of tokens");
 		if (sharesRemoved > 0)
 			emit apeVaultFundsTapped(_vault, address(ApeVaultWrapper(_vault).vault()), sharesRemoved);
 	}

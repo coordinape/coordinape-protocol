@@ -111,27 +111,25 @@ contract ApeVaultWrapper is BaseWrapper, Ownable {
 
 
 	// _tapValue is vault token amount to remove
-	// TODO add fee
-	// TODO add recipient for fee
 	function _tapOnlyProfit(uint256 _tapValue, address _recipient) internal {
-		require(_shareValue(_tapValue) <= profit(), "Not enough profit to cover epoch");
-		uint256 fee = FeeRegistry(ApeRegistry(apeRegistry).feeRegistry()).getVariableFee(_tapValue, _tapValue)
+		uint256 fee = FeeRegistry(ApeRegistry(apeRegistry).feeRegistry()).getVariableFee(_tapValue, _tapValue);
+		uint256 finalTapValue = _tapValue + _tapValue * fee / TOTAL_SHARES;
+		require(_shareValue(finalTapValue) <= profit(), "Not enough profit to cover epoch");
 		vault.safeTransfer(_recipient, _tapValue);
 		vault.safeTransfer(ApeRegistry(apeRegistry).treasury(), _tapValue * fee / TOTAL_SHARES);
 	}
 
-	// TODO add fee
-	// TODO add recipient for fee
 	function _tapBase(uint256 _tapValue, address _recipient) internal {
 		uint256 underlyingTapValue = _shareValue(_tapValue);
 		uint256 profit_ = profit();
-		uint256 fee = FeeRegistry(ApeRegistry(apeRegistry).feeRegistry()).getVariableFee(profit_, underlyingTapValue)
-		underlyingValue -= underlyingTapValue * (TOTAL_SHARES + fee) / TOTAL_SHARES - profit_;
-		vault.safeTransfer(_recipient, _tapValue);
-		vault.safeTransfer(ApeRegistry(apeRegistry).treasury(), _tapValue * fee / TOTAL_SHARES);
+		uint256 fee = FeeRegistry(ApeRegistry(apeRegistry).feeRegistry()).getVariableFee(profit_, underlyingTapValue);
+		uint256 finalTapValue = underlyingTapValue + underlyingTapValue * fee / TOTAL_SHARES;
+		if (finalTapValue > profit_)
+			underlyingValue -= finalTapValue - profit_;
+		vault.transfer(_recipient, _tapValue);
+		vault.transfer(ApeRegistry(apeRegistry).treasury(), _tapValue * fee / TOTAL_SHARES);
 	}
 
-	// TODO add recipient for fee
 	function _tapSimpleToken(uint256 _tapValue, address _recipient) internal {
 		uint256 feeAmount = _tapValue * FeeRegistry(ApeRegistry(apeRegistry).feeRegistry()).staticFee() / TOTAL_SHARES;
 		simpleToken.transfer(_recipient, _tapValue);
@@ -139,7 +137,7 @@ contract ApeVaultWrapper is BaseWrapper, Ownable {
 	}
 
 	function syncUnderlying() external onlyOwner {
-		underlyingValue = _shareValue(token.balanceOf(address(this)));
+		underlyingValue = _shareValue(vault.balanceOf(address(this)));
 	}
 
 	function addFunds(uint256 _amount) external onlyRouter {

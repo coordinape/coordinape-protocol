@@ -9,14 +9,17 @@ def setup_protocol(ape_reg, ape_fee, ape_distro, ape_router, ape_factory, minter
     set_router_call = ape_reg.setRouter.encode_input(ape_router)
     set_distro_call = ape_reg.setDistributor.encode_input(ape_distro)
     set_factory_call = ape_reg.setFactory.encode_input(ape_factory)
+    set_treasury_call = ape_reg.setTreasury.encode_input(minter)
     ape_reg.schedule(ape_reg, set_fee_call, '', '', 0, {'from':minter})
     ape_reg.schedule(ape_reg, set_router_call, '', '', 0, {'from':minter})
     ape_reg.schedule(ape_reg, set_distro_call, '', '', 0, {'from':minter})
     ape_reg.schedule(ape_reg, set_factory_call, '', '', 0, {'from':minter})
+    ape_reg.schedule(ape_reg, set_treasury_call, '', '', 0, {'from':minter})
     ape_reg.execute(ape_reg, set_fee_call, '', '', 0, {'from':minter})
     ape_reg.execute(ape_reg, set_router_call, '', '', 0, {'from':minter})
     ape_reg.execute(ape_reg, set_distro_call, '', '', 0, {'from':minter})
     ape_reg.execute(ape_reg, set_factory_call, '', '', 0, {'from':minter})
+    ape_reg.execute(ape_reg, set_treasury_call, '', '', 0, {'from':minter})
 
 def test_root_upload(ape_reg, ape_fee, ape_distro, ape_router, ape_factory, big_usdc, usdc, ApeVaultWrapper, minter, interface):
     setup_protocol(ape_reg, ape_fee, ape_distro, ape_router, ape_factory, minter)

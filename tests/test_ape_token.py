@@ -57,7 +57,7 @@ def test_permit(ApeToken, accounts, web3):
 	to = accounts[0].address
 	amount = Wei('150000 ether')
 	nonce = 0
-	deadline = 1632042916
+	deadline = 1642042916
 	sig = generate_permit(web3, sig_accounts[0], to, amount, nonce, deadline, ape.DOMAIN_SEPARATOR())
 	ape.permit(_from, to, amount, deadline, sig.v, sig.r, sig.s, {'from':accounts[2]})
 	with reverts("ApeToken: invalid signature"):

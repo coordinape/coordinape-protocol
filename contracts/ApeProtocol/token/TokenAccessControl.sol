@@ -18,7 +18,7 @@ contract TokenAccessControl is Ownable {
 
 
 	modifier isPaused() {
-		require(!paused, "AccessControl: Contract is paused");
+		require(!paused || (whitelistedAddresses[msg.sender] && !whitelistDisabled), "AccessControl: User cannot transfer");
 		_;
 	}
 

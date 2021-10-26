@@ -12,7 +12,7 @@ def test_pausing(accounts, ApeToken):
 	with reverts('Ownable: caller is not the owner'):
 		ape.changePauseStatus(True, {'from':accounts[1]})
 	ape.changePauseStatus(True, {'from':accounts[0]})
-	with reverts('AccessControl: Contract is paused'):
+	with reverts('AccessControl: User cannot transfer'):
 		ape.transfer(accounts[1], Wei('1 ether'), {'from':accounts[0]})
 	ape.changePauseStatus(False, {'from':accounts[0]})
 	ape.transfer(accounts[1], Wei('1 ether'), {'from':accounts[0]})
@@ -28,20 +28,20 @@ def test_whitelisting(accounts, ApeToken):
 
 	ape.transfer(accounts[1], Wei('1 ether'), {'from':accounts[0]})
 	ape.changePauseStatus(True, {'from':accounts[0]})
-	with reverts('ApeToken: Address is not whitelisted'):
-		ape.whitelistTransfer(accounts[1], '2 ether', {'from':accounts[0]})
+	with reverts('AccessControl: User cannot transfer'):
+		ape.transfer(accounts[1], '2 ether', {'from':accounts[0]})
 	ape.addWhitelistedAddresses([accounts[1], accounts[0]], {'from':accounts[0]})
-	ape.whitelistTransfer(accounts[1], '2 ether', {'from':accounts[0]})
-	ape.whitelistTransfer(accounts[0], '3 ether', {'from':accounts[1]})
+	ape.transfer(accounts[1], '2 ether', {'from':accounts[0]})
+	ape.transfer(accounts[0], '3 ether', {'from':accounts[1]})
 	ape.removeWhitelistedAddresses([accounts[1], accounts[0]], {'from':accounts[0]})
-	with reverts('ApeToken: Address is not whitelisted'):
-		ape.whitelistTransfer(accounts[1], '2 ether', {'from':accounts[0]})
+	with reverts('AccessControl: User cannot transfer'):
+		ape.transfer(accounts[1], '2 ether', {'from':accounts[0]})
 	ape.addWhitelistedAddresses([accounts[1], accounts[0]], {'from':accounts[0]})
 	ape.disableWhitelist({'from':accounts[0]})
 	with reverts('AccessControl: Whitelist already disabled'):
 		ape.disableWhitelist({'from':accounts[0]})
-	with reverts('ApeToken: Whitelisting is disabled'):
-		ape.whitelistTransfer(accounts[1], '20 ether', {'from':accounts[0]})
+	with reverts('AccessControl: User cannot transfer'):
+		ape.transfer(accounts[1], '20 ether', {'from':accounts[0]})
 
 
 

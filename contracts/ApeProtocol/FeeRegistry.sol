@@ -19,7 +19,7 @@ contract FeeRegistry is Ownable {
 		else if (yieldRatio >= 700)
 			variableFee = baseFee + 50;   // 1.50%  @ 70% profit
 		else if (yieldRatio >= 600)
-			variableFee = baseFee + 75;  // 1.75%  @ 60% profit
+			variableFee = baseFee + 75;   // 1.75%  @ 60% profit
 		else if (yieldRatio >= 500)
 			variableFee = baseFee + 100;  // 2.00%  @ 80% profit
 		else if (yieldRatio >= 400)
@@ -31,6 +31,6 @@ contract FeeRegistry is Ownable {
 		else if (yieldRatio >= 100)
 			variableFee = baseFee + 200;  // 3.00%  @ 80% profit
 		else
-			variableFee = staticFee + 250;// 3.50%  @ 0% profit
+			variableFee = baseFee + 250;  // 3.50%  @ 0% profit
 	}
 }

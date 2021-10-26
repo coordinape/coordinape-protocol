@@ -57,10 +57,16 @@ contract ApeToken is ERC20("coordinape.com", "APE"), TokenAccessControl {
     }
 
     function transfer(address _to, uint256 _amount) public override isPaused() returns(bool) {
-        ERC20.transfer(_to, _amount);
+        return ERC20.transfer(_to, _amount);
     }
 
     function transferFrom(address _from, address _to, uint256 _amount) public override isPaused() returns(bool) {
-        ERC20.transferFrom(_from, _to, _amount);
+        return ERC20.transferFrom(_from, _to, _amount);
+    }
+
+    function whitelistTransfer(address _to, uint256 _amount) external returns(bool) {
+        require(whitelistedAddresses[msg.sender], "ApeToken: Address is not whitelisted");
+        require(!whitelistDisabled, "ApeToken: Whitelisting is disabled");
+        return ERC20.transfer(_to, _amount);
     }
 }

@@ -4,13 +4,17 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 
 contract TokenAccessControl is Ownable {
 	mapping(address => bool) public minters;
+	mapping(address => bool) public whitelistedAddresses;
 
 	bool public paused;
 	bool public foreverUnpaused;
 	bool public mintingDisabled;
+	bool public whitelistDisabled;
 
 	event MintersAdded(address[] minters);
 	event MintersRemoved(address[] minters);
+	event WhitelistedAddressesAdded(address[] minters);
+	event WhitelistedAddressesRemoved(address[] minters);
 
 
 	modifier isPaused() {
@@ -22,6 +26,11 @@ contract TokenAccessControl is Ownable {
 		require(!mintingDisabled, "AccessControl: Contract cannot mint tokens anymore");
 		require(minters[_caller], "AccessControl: Cannot mint");
 		_;
+	}
+
+	function disableWhitelist() external onlyOwner {
+		require(!whitelistDisabled, "AccessControl: Whitelist already disabled");
+		whitelistDisabled = true;
 	}
 
 	function changePauseStatus(bool _status) external onlyOwner {
@@ -50,6 +59,22 @@ contract TokenAccessControl is Ownable {
 		for(uint256 i = 0; i < _minters.length; i++)
 			minters[_minters[i]] = false;
 		emit MintersRemoved(_minters);
+	}
+
+	function addWhitelistedAddresses(address[] calldata _addresses) external onlyOwner {
+		require(!whitelistDisabled, "AccessControl: Whitelist already disabled");
+
+		for(uint256 i = 0; i < _addresses.length; i++)
+			whitelistedAddresses[_addresses[i]] = true;
+		emit WhitelistedAddressesAdded(_addresses);
+	}
+
+	function removeWhitelistedAddresses(address[] calldata _addresses) external onlyOwner {
+		require(!whitelistDisabled, "AccessControl: Whitelist already disabled");
+
+		for(uint256 i = 0; i < _addresses.length; i++)
+			whitelistedAddresses[_addresses[i]] = false;
+		emit WhitelistedAddressesRemoved(_addresses);
 	}
 
 	function disableMintingForever() external onlyOwner {

@@ -5,9 +5,9 @@ import {ApeVaultFactory} from "./wrapper/ApeVaultFactory.sol";
 import {ApeVaultWrapper} from "./wrapper/ApeVault.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
+import "./TimeLock.sol";
 
-contract ApeRouter is Ownable {
+contract ApeRouter is TimeLock {
 	using SafeERC20 for IERC20;
 
 
@@ -16,7 +16,7 @@ contract ApeRouter is Ownable {
 	address public yearnRegistry;
 	address public apeVaultFactory;
 
-	constructor(address _reg, address _factory) {
+	constructor(address _reg, address _factory, uint256 _minDelay) TimeLock(_minDelay)  {
 		yearnRegistry = _reg;
 		apeVaultFactory = _factory;
 	}
@@ -54,7 +54,7 @@ contract ApeRouter is Ownable {
 		emit DepositInVault(_apeVault, _token, sharesMinted);
 	}
 
-	function delegateWithdrawal(address _recipient, address _vault, uint256 _shareAmount, bool _underlying) external{
+	function delegateWithdrawal(address _recipient, address _apeVault, address _token, uint256 _shareAmount, bool _underlying) external{
 		VaultAPI vault = VaultAPI(RegistryAPI(yearnRegistry).latestVault(_token));
 		require(address(vault) != address(0), "ApeRouter: No vault for token");
 		require(ApeVaultFactory(apeVaultFactory).vaultRegistry(msg.sender), "ApeRouter: Vault does not exist");
@@ -76,12 +76,7 @@ contract ApeRouter is Ownable {
      *  Used to update the yearn registry.
      * @param _registry The new _registry address.
      */
-    function setRegistry(address _registry) external onlyOwner {
-        //require(msg.sender == RegistryAPI(yearnRegistry).governance());
-        // In case you want to override the registry instead of re-deploying
+    function setRegistry(address _registry) external itself {
         yearnRegistry = _registry;
-        // Make sure there's no change in governance
-        // NOTE: Also avoid bricking the wrapper from setting a bad registry
-        //require(msg.sender == RegistryAPI(yearnRegistry).governance());
     }
 }

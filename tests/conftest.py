@@ -31,7 +31,7 @@ def ape_factory(ApeVaultFactory, ape_reg, yearn_reg, minter):
 
 @pytest.fixture()
 def ape_router(ApeRouter, yearn_reg, ape_factory, minter):
-    return ApeRouter.deploy(yearn_reg, ape_factory, {'from':minter})
+    return ApeRouter.deploy(yearn_reg, ape_factory, 0, {'from':minter})
 
 @pytest.fixture()
 def ape_distro(ApeDistributor, minter):
@@ -59,7 +59,7 @@ def mock_ape_factory(ApeVaultFactory, mock_ape_reg, mock_yearn_reg, minter):
 
 @pytest.fixture()
 def mock_ape_router(ApeRouter, mock_yearn_reg, mock_ape_factory, minter):
-    return ApeRouter.deploy(mock_yearn_reg, mock_ape_factory, {'from':minter})
+    return ApeRouter.deploy(mock_yearn_reg, mock_ape_factory, 0, {'from':minter})
 
 @pytest.fixture()
 def mock_ape_distro(ApeDistributor, minter):

@@ -88,8 +88,10 @@ contract ApeVaultWrapper is BaseWrapper, Ownable {
 		uint256 underlyingAmount = _shareValue(_shareAmount)
 		require(underlyingAmount <= underlyingValue, "underlying amount higher than vault value");
 
+		address router = ApeRegistry(apeRegistry).router();
 		underlyingValue -= underlyingAmount;
-		ApeRouter(ApeRegistry(apeRegistry).router()).delegateWithdrawal(owner(), address(vault), _shareAmount, _underlying);
+		vault.transfer(router, _shareAmount);
+		ApeRouter(router).delegateWithdrawal(owner(), address(vault), _shareAmount, _underlying);
 	}
 
 	/**  
@@ -100,7 +102,9 @@ contract ApeVaultWrapper is BaseWrapper, Ownable {
 	function exitVaultToken(bool _underlying) external onlyOwner {
 		underlyingValue = 0;
 		uint256 totalShares = vault.balanceOf(address(this));
-		ApeRouter(ApeRegistry(apeRegistry).router()).delegateWithdrawal(owner(), address(vault), totalShares, _underlying);
+		address router = ApeRegistry(apeRegistry).router();
+		vault.transfer(router, totalShares);
+		ApeRouter(router).delegateWithdrawal(owner(), address(vault), totalShares, _underlying);
 	}
 
 	/**  

@@ -22,6 +22,7 @@ contract ApeRouter is Ownable {
 	}
 
 	event DepositInVault(address indexed vault, address token, uint256 amount);
+	event WithdrawFromVault(address indexed vault, address token, uint256 amount);
 
 	function delegateDeposit(address _apeVault, address _token, uint256 _amount) external returns(uint256 deposited) {
 		VaultAPI vault = VaultAPI(RegistryAPI(yearnRegistry).latestVault(_token));
@@ -51,6 +52,19 @@ contract ApeRouter is Ownable {
 
 		ApeVaultWrapper(_apeVault).addFunds(deposited);
 		emit DepositInVault(_apeVault, _token, sharesMinted);
+	}
+
+	function delegateWithdrawal(address _recipient, address _vault, uint256 _shareAmount, bool _underlying) external{
+		VaultAPI vault = VaultAPI(RegistryAPI(yearnRegistry).latestVault(_token));
+		require(address(vault) != address(0), "ApeRouter: No vault for token");
+		require(ApeVaultFactory(apeVaultFactory).vaultRegistry(msg.sender), "ApeRouter: Vault does not exist");
+		require(address(vault) == address(ApeVaultWrapper(_apeVault).vault()), "ApeRouter: yearn Vault not identical");
+
+		if (_underlying)
+			vault.withdraw(_shareAmount, _recipient);
+		else
+			vault.transfer(_recipient, _shareAmount);
+		emit WithdrawFromVault(address(vault), vault.token(), _shareAmount);
 	}
 
 	function removeTokens(address _token) external onlyOwner {

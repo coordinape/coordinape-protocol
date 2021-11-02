@@ -1,15 +1,28 @@
 pragma solidity ^0.8.2;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
+import "./TimeLock.sol";
 
-contract FeeRegistry is Ownable {
-	uint256 public staticFee; // 100 | MAX = 10000
+contract FeeRegistry is TimeLock(0){
+	uint256 private constant _staticFee = 100; // 100 | MAX = 10000
+	bool public on;
 
-	function setStaticFee(uint256 _fee) external onlyOwner {
-		staticFee = _fee;
+	function activateFee() external itself {
+		on = true;
 	}
 
-	function getVariableFee(uint256 _yield, uint256 _tapTotal) external pure returns(uint256 variableFee) {
+	function shutdownFee() external itself {
+		on = false;
+	}
+
+	function staticFee() external view returns(uint256) {
+		if (!on)
+			return 0;
+		return _staticFee;
+	}
+
+	function getVariableFee(uint256 _yield, uint256 _tapTotal) external returns(uint256 variableFee) {
+		if (!on)
+			return 0;
 		uint256 yieldRatio = _yield * 1000 / _tapTotal;
 		uint256 baseFee = 100;
 		if (yieldRatio >= 900)

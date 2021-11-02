@@ -18,7 +18,7 @@ contract MockRegistry {
 		uint256 current = numVaults[_token];
 		latestVault[_token] = _vault;
 		numVaults[_token]++;
-		vaults[_token][current + 1] = _vault;
+		vaults[_token][current] = _vault;
 	}
 }
 
@@ -64,37 +64,39 @@ contract MockVault is ERC20("VaultToken", "VT") {
 	}
 
 	function deposit() external returns (uint256) {
-		deposit(token.balanceOf(msg.sender));
+		return deposit(token.balanceOf(msg.sender));
 	}
 
     function deposit(uint256 amount) public returns (uint256) {
-		deposit(amount, msg.sender);
+		return deposit(amount, msg.sender);
 	}
 
-    function deposit(uint256 amount, address recipient) public returns (uint256) {
+    function deposit(uint256 amount, address recipient) public returns (uint256 deposited) {
 		depositLimit -= amount;
 		if (totalSupply() == 0) {
 			_mint(recipient, amount);
+			deposited = amount;
 		}
 		else {
 			uint256 _amount = amount * balanceOf(address(this)) / token.balanceOf(address(this));
 			_mint(recipient, _amount);
+			deposited = _amount;
 		}
 		token.transferFrom(msg.sender, address(this), amount);
 	}
 
     // NOTE: Vyper produces multiple signatures for a given function with "default" args
     function withdraw() external returns (uint256) {
-		withdraw(balanceOf(msg.sender));
+		return withdraw(balanceOf(msg.sender));
 	}
 
     function withdraw(uint256 maxShares) public returns (uint256) {
-		withdraw(maxShares, msg.sender);
+		return withdraw(maxShares, msg.sender);
 	}
 
-    function withdraw(uint256 maxShares, address recipient) public returns (uint256) {
+    function withdraw(uint256 maxShares, address recipient) public returns (uint256 amount) {
 		require(maxShares <= balanceOf(msg.sender) && maxShares > 0);
-		uint256 amount = maxShares * token.balanceOf(address(this)) / totalSupply();
+		amount = maxShares * token.balanceOf(address(this)) / totalSupply();
 		_burn(msg.sender, maxShares);
 		token.transfer(recipient, amount);
 	}

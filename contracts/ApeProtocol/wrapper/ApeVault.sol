@@ -111,8 +111,8 @@ contract ApeVaultWrapper is BaseWrapper, Ownable {
 	 * @notice
 	 * Used to migrate yearn vault
 	 */
-	function apeMigrate() external onlyOwner {
-		_migrate(address(this));
+	function apeMigrate() external onlyOwner returns(uint256 migrated){
+		migrated = _migrate(address(this));
 		vault = VaultAPI(registry.latestVault(address(token)));
 	}
 

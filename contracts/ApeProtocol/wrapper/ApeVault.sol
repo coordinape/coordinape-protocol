@@ -84,14 +84,14 @@ contract ApeVaultWrapper is BaseWrapper, Ownable {
 	 * @param _shareAmount Amount of yield bearing token to withdraw
 	 * @param _underlying boolean to know if we redeem shares or not
 	 */
-	function apeWithdrawUnderlying(uint256 _shareAmount, bool _underlying) external onlyOwner {
+	function apeWithdraw(uint256 _shareAmount, bool _underlying) external onlyOwner {
 		uint256 underlyingAmount = _shareValue(_shareAmount);
 		require(underlyingAmount <= underlyingValue, "underlying amount higher than vault value");
 
 		address router = ApeRegistry(apeRegistry).router();
 		underlyingValue -= underlyingAmount;
 		vault.transfer(router, _shareAmount);
-		ApeRouter(router).delegateWithdrawal(owner(), address(vault), vault.token(), _shareAmount, _underlying);
+		ApeRouter(router).delegateWithdrawal(owner(), address(this), vault.token(), _shareAmount, _underlying);
 	}
 
 	/**  
@@ -104,7 +104,7 @@ contract ApeVaultWrapper is BaseWrapper, Ownable {
 		uint256 totalShares = vault.balanceOf(address(this));
 		address router = ApeRegistry(apeRegistry).router();
 		vault.transfer(router, totalShares);
-		ApeRouter(router).delegateWithdrawal(owner(), address(vault), vault.token(), totalShares, _underlying);
+		ApeRouter(router).delegateWithdrawal(owner(), address(this), vault.token(), totalShares, _underlying);
 	}
 
 	/**  

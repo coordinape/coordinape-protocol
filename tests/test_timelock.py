@@ -8,16 +8,19 @@ def setup_protocol(ape_reg, ape_fee, ape_distro, ape_router, ape_factory, minter
     set_router_call = ape_reg.setRouter.encode_input(ape_router)
     set_distro_call = ape_reg.setDistributor.encode_input(ape_distro)
     set_factory_call = ape_reg.setFactory.encode_input(ape_factory)
+    set_treasury_call = ape_reg.setTreasury.encode_input(minter)
     ape_reg.schedule(ape_reg, set_fee_call, '', '', 0, {'from':minter})
     ape_reg.schedule(ape_reg, set_router_call, '', '', 0, {'from':minter})
     ape_reg.schedule(ape_reg, set_distro_call, '', '', 0, {'from':minter})
     ape_reg.schedule(ape_reg, set_factory_call, '', '', 0, {'from':minter})
+    ape_reg.schedule(ape_reg, set_treasury_call, '', '', 0, {'from':minter})
     ape_reg.execute(ape_reg, set_fee_call, '', '', 0, {'from':minter})
     ape_reg.execute(ape_reg, set_router_call, '', '', 0, {'from':minter})
     ape_reg.execute(ape_reg, set_distro_call, '', '', 0, {'from':minter})
     ape_reg.execute(ape_reg, set_factory_call, '', '', 0, {'from':minter})
+    ape_reg.execute(ape_reg, set_treasury_call, '', '', 0, {'from':minter})
 
-def test_timelock(ape_reg, ape_fee, ape_distro, ape_router, ape_factory, big_usdc, usdc, ApeVaultWrapper, minter, chain):
+def test_timelock(ape_reg, ape_fee, ape_distro, ape_router, ape_factory, big_usdc, usdc, ApeVaultWrapper, minter, chain, web3):
     setup_protocol(ape_reg, ape_fee, ape_distro, ape_router, ape_factory, minter)
     assert ape_reg.factory() == ape_factory
     assert ape_reg.feeRegistry() == ape_fee
@@ -25,11 +28,12 @@ def test_timelock(ape_reg, ape_fee, ape_distro, ape_router, ape_factory, big_usd
     assert ape_reg.router() == ape_router
     min_delay_call = ape_reg.changeMinDelay.encode_input(60*60*24)
     ape_reg.schedule(ape_reg, min_delay_call, '', '', 0, {'from':minter})
+    ape_reg.execute(ape_reg, min_delay_call, '', '', 0, {'from':minter})
     assert ape_reg.minDelay() == 60 * 60 * 24
     with reverts('TimeLock: Caller is not contract itself'):
         ape_reg.changeMinDelay(0, {'from':minter})
-    set_router_call = ape_reg.setRouter.encore_input(ape_reg)
-    with reverts('TimeLocj: Insufficient delay'):
+    set_router_call = ape_reg.setRouter.encode_input(ape_reg)
+    with reverts('TimeLock: Insufficient delay'):
         ape_reg.schedule(ape_reg, set_router_call, '', web3.keccak(text='test_timelock'), 60 * 60 * 23 , {'from':minter})
     ape_reg.schedule(ape_reg, set_router_call, '', web3.keccak(text='test_timelock'), 60 * 60 * 24 * 2 , {'from':minter})
     with reverts('TimeLock: Call already scheduled'):

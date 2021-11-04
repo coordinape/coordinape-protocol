@@ -8,14 +8,17 @@ def setup_protocol(ape_reg, ape_fee, ape_distro, ape_router, ape_factory, minter
     set_router_call = ape_reg.setRouter.encode_input(ape_router)
     set_distro_call = ape_reg.setDistributor.encode_input(ape_distro)
     set_factory_call = ape_reg.setFactory.encode_input(ape_factory)
+    set_treasury_call = ape_reg.setTreasury.encode_input(minter)
     ape_reg.schedule(ape_reg, set_fee_call, '', '', 0, {'from':minter})
     ape_reg.schedule(ape_reg, set_router_call, '', '', 0, {'from':minter})
     ape_reg.schedule(ape_reg, set_distro_call, '', '', 0, {'from':minter})
     ape_reg.schedule(ape_reg, set_factory_call, '', '', 0, {'from':minter})
+    ape_reg.schedule(ape_reg, set_treasury_call, '', '', 0, {'from':minter})
     ape_reg.execute(ape_reg, set_fee_call, '', '', 0, {'from':minter})
     ape_reg.execute(ape_reg, set_router_call, '', '', 0, {'from':minter})
     ape_reg.execute(ape_reg, set_distro_call, '', '', 0, {'from':minter})
     ape_reg.execute(ape_reg, set_factory_call, '', '', 0, {'from':minter})
+    ape_reg.execute(ape_reg, set_treasury_call, '', '', 0, {'from':minter})
 
 def test_vault_creation(ape_reg, ape_fee, ape_distro, ape_router, ape_factory, big_usdc, usdc, ApeVaultWrapper, minter):
     setup_protocol(ape_reg, ape_fee, ape_distro, ape_router, ape_factory, minter)
@@ -91,8 +94,23 @@ def test_vault_withdraw_underlying(ape_reg, ape_fee, ape_distro, ape_router, ape
     ape_router.delegateDeposit(ape_vault, usdc, amount, {'from':user})
     yv_bal = usdc_vault.balanceOf(ape_vault)
     expected = 200_000_000_000
-    ape_vault.apeWithdrawUnderlying(expected, {'from':user})
-    assert usdc.balanceOf(user) >= expected * 99 // 100 
+    ape_vault.apeWithdraw(expected, True,{'from':user})
+    assert usdc.balanceOf(user) >= expected * 99 // 100
+
+def test_vault_withdraw(ape_reg, ape_fee, ape_distro, ape_router, ape_factory, big_usdc, usdc, ApeVaultWrapper, minter, interface):
+    setup_protocol(ape_reg, ape_fee, ape_distro, ape_router, ape_factory, minter)
+    user = accounts[0]
+    amount = 1_000_000_000_000
+    usdc.transfer(user, amount, {'from':big_usdc})
+    usdc.approve(ape_router, 2 ** 256 -1, {'from':user})
+    tx = ape_factory.createApeVault(usdc, '0x0000000000000000000000000000000000000000', {'from':user})
+    ape_vault = ApeVaultWrapper.at(tx.new_contracts[0])
+    usdc_vault = interface.IERC20('0x5f18C75AbDAe578b483E5F43f12a39cF75b973a9')
+    ape_router.delegateDeposit(ape_vault, usdc, amount, {'from':user})
+    yv_bal = usdc_vault.balanceOf(ape_vault)
+    expected = 200_000_000_000
+    ape_vault.apeWithdraw(expected, False,{'from':user})
+    assert usdc_vault.balanceOf(user) >= expected
 
 def test_migrate():
     pass

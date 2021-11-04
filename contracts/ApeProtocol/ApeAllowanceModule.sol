@@ -50,29 +50,15 @@ abstract contract ApeAllowanceModule {
 		Allowance memory allowance = allowances[_vault][_circle][_token];
 		CurrentAllowance storage currentAllowance = currentAllowances[_vault][_circle][_token];
 
-		require(currentAllowance.epochs > 0, "Circle cannot tap anymore");
 		_updateInterval(currentAllowance, allowance);
 		require(currentAllowance.debt + _amount <= allowance.maxAmount, "Circle does not have sufficient allowance");
 		currentAllowance.debt += _amount;
 	}
 
-	// function _updateInterval(CurrentAllowance storage _currentAllowance, Allowance memory _allowance) internal {
-	// 	uint256 elapsedTime = block.timestamp - _currentAllowance.intervalStart;
-	// 	if (elapsedTime > _allowance.maxInterval) {
-	// 		_currentAllowance.debt = 0;
-	// 		_currentAllowance.intervalStart += _allowance.maxInterval * (elapsedTime / _allowance.maxInterval);
-	// 		_currentAllowance.epochs--;
-	// 	}
-	// }
-
-
-	
-	// WIP
 	function _updateInterval(CurrentAllowance storage _currentAllowance, Allowance memory _allowance) internal {
-		uint _intervalStart = _currentAllowance.intervalStart;
-		uint256 elapsedTime = block.timestamp - _intervalStart;
-		uint256 nextInterval = _intervalStart + _allowance.maxInterval;
-		if (block.timestamp > nextInterval) {
+		uint256 elapsedTime = block.timestamp - _currentAllowance.intervalStart;
+		if (elapsedTime > _allowance.maxInterval) {
+			require(_currentAllowance.epochs > 0, "Circle cannot tap anymore");
 			_currentAllowance.debt = 0;
 			_currentAllowance.intervalStart += _allowance.maxInterval * (elapsedTime / _allowance.maxInterval);
 			_currentAllowance.epochs--;

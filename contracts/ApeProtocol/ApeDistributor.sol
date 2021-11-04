@@ -47,7 +47,7 @@ contract ApeDistributor is ApeAllowanceModule, Ownable {
 		uint256 _amount,
 		uint8 _tapType)
 		external {
-		require(vaultApprovals[_vault][_circle] == msg.sender, "Sender cannot upload a root");
+		require(vaultApprovals[_vault][_circle] == msg.sender || ApeVaultWrapper(_vault).owner() == msg.sender, "Sender cannot upload a root");
 		require(address(ApeVaultWrapper(_vault).vault()) == _token, "Vault cannot supply token");
 		// require(circleToken[_circle][_token], "Token not accepted");
 		_isTapAllowed(_vault, _circle, _token, _amount);
@@ -56,8 +56,10 @@ contract ApeDistributor is ApeAllowanceModule, Ownable {
 
 		epochTracking[_circle][_token]++;
 		circleAlloc[_circle][_token] += _amount;
-
+		uint256 beforeBal = IERC20(_token).balanceOf(address(this));
 		uint256 sharesRemoved = ApeVaultWrapper(_vault).tap(_amount, _tapType);
+		uint256 afterBal = IERC20(_token).balanceOf(address(this));
+		require(afterBal - beforeBal == _amount, "Did not receive correct amount of tokens");
 		if (sharesRemoved > 0)
 			emit apeVaultFundsTapped(_vault, address(ApeVaultWrapper(_vault).vault()), sharesRemoved);
 	}
@@ -80,8 +82,8 @@ contract ApeDistributor is ApeAllowanceModule, Ownable {
 		uint256 bitIndex = _index % 256;
 		epochClaimBitMap[_circle][_token][_epoch][wordIndex] |= 1 << bitIndex;
 	}
-	//TODO add claimMany
-	function claim(bytes32 _circle, address _token, uint256 _epoch, uint256 _index, address _account, uint256 _checkpoint, bool _redeemShares, bytes32[] memory _proof) external {
+
+	function claim(bytes32 _circle, address _token, uint256 _epoch, uint256 _index, address _account, uint256 _checkpoint, bool _redeemShares, bytes32[] memory _proof) public {
 		require(!isClaimed(_circle, _token, _epoch, _index), "Claimed already");
 		bytes32 node = keccak256(abi.encodePacked(_index, _account, _checkpoint));
 		require(_proof.verify(epochRoots[_circle][_token][_epoch], node), "Wrong proof");
@@ -98,5 +100,25 @@ contract ApeDistributor is ApeAllowanceModule, Ownable {
 		else
 			IERC20(_token).safeTransfer(_account, claimable);
 		emit Claimed(_circle, _token, _epoch, _index, _account, claimable);
+	}
+
+	function claimMany(
+		bytes32[] calldata _circles,
+		address[] calldata _tokensAndAccounts,
+		uint256[] calldata _epochsIndexesCheckpoints,
+		bool[] calldata _redeemShares,
+		bytes32[][] memory _proofs) external {
+		for(uint256 i = 0; i < _circles.length; i++) {
+			claim(
+				_circles[i],
+				_tokensAndAccounts[i],
+				_epochsIndexesCheckpoints[i],
+				_epochsIndexesCheckpoints[i + _epochsIndexesCheckpoints.length / 3],
+				_tokensAndAccounts[i + _tokensAndAccounts.length / 2],
+				_epochsIndexesCheckpoints[i + _epochsIndexesCheckpoints.length * 2 / 3],
+				_redeemShares[i],
+				_proofs[i]
+				);
+		}
 	}
 }	

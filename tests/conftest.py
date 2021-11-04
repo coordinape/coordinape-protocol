@@ -5,24 +5,9 @@ import csv
 def shared_setup(fn_isolation):
     pass
 
-
 @pytest.fixture()
 def minter(accounts):
     return accounts[0]
-
-
-@pytest.fixture()
-def coco(accounts):
-    return accounts.at("0x721931508df2764fd4f70c53da646cb8aed16ace", force=True)
-
-@pytest.fixture()
-def myo(accounts):
-    return accounts.at("0x8d8203f7f9137c9d59f0cf64e9af38f4df8f487f", force=True)
-
-
-@pytest.fixture()
-def big(accounts):
-    return accounts.at("0x742d35cc6634c0532925a3b844bc454e4438f44e", force=True)
 
 @pytest.fixture()
 def usdc(interface):
@@ -46,7 +31,7 @@ def ape_factory(ApeVaultFactory, ape_reg, yearn_reg, minter):
 
 @pytest.fixture()
 def ape_router(ApeRouter, yearn_reg, ape_factory, minter):
-    return ApeRouter.deploy(yearn_reg, ape_factory, {'from':minter})
+    return ApeRouter.deploy(yearn_reg, ape_factory, 0, {'from':minter})
 
 @pytest.fixture()
 def ape_distro(ApeDistributor, minter):
@@ -56,10 +41,30 @@ def ape_distro(ApeDistributor, minter):
 def ape_fee(FeeRegistry, minter):
     return FeeRegistry.deploy({'from':minter})
 
-# @pytest.fixture()
-# def ape_reg(ape_reg_, ape_factory, ape_router, ape_fee, ape_distro, minter):
-#     ape_reg_.setFeeRegistry(ape_fee, {'from':minter})
-#     ape_reg_.setRouter(ape_router, {'from':minter})
-#     ape_reg_.setDistributor(ape_distro, {'from':minter})
-#     ape_reg_.setFactory(ape_factory, {'from':minter})
-#     return ape_reg_
+@pytest.fixture()
+def mock_yearn_reg(MockRegistry, minter):
+    return MockRegistry.deploy({'from':minter})
+
+@pytest.fixture()
+def mock_yearn_vault_factories(MockVaultFactory, mock_yearn_reg, minter):
+    return MockVaultFactory.deploy(mock_yearn_reg, {'from':minter})
+
+@pytest.fixture()
+def mock_ape_reg(ApeRegistry, minter):
+    return ApeRegistry.deploy(0, {'from':minter})
+
+@pytest.fixture()
+def mock_ape_factory(ApeVaultFactory, mock_ape_reg, mock_yearn_reg, minter):
+    return ApeVaultFactory.deploy(mock_yearn_reg, mock_ape_reg, {'from':minter})
+
+@pytest.fixture()
+def mock_ape_router(ApeRouter, mock_yearn_reg, mock_ape_factory, minter):
+    return ApeRouter.deploy(mock_yearn_reg, mock_ape_factory, 0, {'from':minter})
+
+@pytest.fixture()
+def mock_ape_distro(ApeDistributor, minter):
+    return ApeDistributor.deploy({'from':minter})
+
+@pytest.fixture()
+def mock_ape_fee(FeeRegistry, minter):
+    return FeeRegistry.deploy({'from':minter})

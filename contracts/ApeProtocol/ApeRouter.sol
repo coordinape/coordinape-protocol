@@ -43,11 +43,6 @@ contract ApeRouter is TimeLock {
 
         uint256 afterBal = IERC20(_token).balanceOf(address(this));
         deposited = beforeBal - afterBal;
-        // `receiver` now has shares of `_bestVault` as balance, converted to `token` here
-        // Issue a refund if not everything was deposited
-
-		// adding protocol removal call
-        //if (afterBal > 0) IERC20(_token).safeTransfer(msg.sender, afterBal);
 
 
 		ApeVaultWrapper(_apeVault).addFunds(deposited);

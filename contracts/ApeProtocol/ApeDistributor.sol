@@ -8,7 +8,7 @@ import "./wrapper/ApeVault.sol";
 import "./ApeAllowanceModule.sol";
 import {VaultAPI} from "./wrapper/BaseWrapper.sol";
 
-contract ApeDistributor is ApeAllowanceModule, Ownable {
+contract ApeDistributor is ApeAllowanceModule {
 	using MerkleProof for bytes32[];
 	using SafeERC20 for IERC20;
 

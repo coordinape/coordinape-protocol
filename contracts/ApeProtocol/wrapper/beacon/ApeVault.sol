@@ -90,8 +90,8 @@ contract ApeVaultWrapperImplementation is BaseWrapperImplementation, OwnableImpl
 
 	function init(
 		address _apeRegistry,
-	    address _token,
-        address _registry,
+		address _token,
+		address _registry,
 		address _simpleToken) external {
 		require(!setup);
 		apeRegistry = _apeRegistry;

@@ -203,7 +203,7 @@ contract ApeVaultWrapper is BaseWrapper, Ownable {
 	 * @param _circle Circle who will benefit from this vault
 	 * @param _admin address that can finalise epochs
 	 */
-	function approveCircleAdmin(bytes32 _circle, address _admin) external onlyOwner {
+	function updateCircleAdmin(bytes32 _circle, address _admin) external onlyOwner {
 		ApeDistributor(ApeRegistry(apeRegistry).distributor()).updateCircleAdmin(_circle, _admin);
 	}
 

@@ -5,7 +5,6 @@ abstract contract ApeAllowanceModule {
 	struct Allowance {
 		uint256 maxAmount;
 		uint256 maxInterval;
-		//uint256 tapType; // 0 pure profit | 1 any | 2 shitcoins 
 	}
 
 	struct CurrentAllowance {
@@ -20,7 +19,17 @@ abstract contract ApeAllowanceModule {
 
 	event AllowanceUpdated(address vault, bytes32 circle, address token, uint256 amount, uint256 interval);
 
-	// TODO add tap type checks
+
+	/**  
+	 * @notice
+	 * Used to set an allowance of a circle from an ape vault.
+	 * Setting _epochs at 0 with a non-zero _amount entitles the circle to one epoch of funds
+	 * @param _circle Circle ID receiving the allowance
+	 * @param _token Address of token to allocate
+	 * @param _amount Amount to take out at most
+	 * @param _interval Duration of an epoch in seconds
+	 * @param _epochs Amount of epochs to fund. Expected_funded_epochs = _epochs + 1
+	 */
 	function setAllowance(
 		bytes32 _circle,
 		address _token,
@@ -41,6 +50,14 @@ abstract contract ApeAllowanceModule {
 		emit AllowanceUpdated(msg.sender, _circle, _token, _amount, _interval);
 	}
 
+	/**  
+	 * @notice
+	 * Used to check and update if a circle can take funds out of an ape vault
+	 * @param _vault Address of vault to take funds from
+	 * @param _circle Circle ID querying the funds
+	 * @param _token Address of token to take out
+	 * @param _amount Amount to take out
+	 */
 	function _isTapAllowed(
 		address _vault,
 		bytes32 _circle,

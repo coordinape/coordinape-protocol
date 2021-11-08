@@ -17,9 +17,6 @@ contract ApeDistributor is ApeAllowanceModule, Ownable {
 	// vault => circle => admin address
 	mapping(address => mapping(bytes32 => address)) public vaultApprovals;
 
-	// accepted tokens for given circle
-	// circle => grant token => bool
-	// mapping(address => mapping(address => bool)) public circleToken;
 
 	// roots following this mapping:
 	// circle address => token address => epoch ID => root
@@ -39,6 +36,18 @@ contract ApeDistributor is ApeAllowanceModule, Ownable {
 
 	event apeVaultFundsTapped(address indexed apeVault, address yearnVault, uint256 amount);
 
+
+
+	/**  
+	 * @notice
+	 * Used to allow a circle to supply an epoch with funds from a given ape vault
+	 * @param _vault Address of ape vault from which to take funds from
+	 * @param _cicle Circle ID querying the funds
+	 * @param _token Address of the token to withdraw from the vault
+	 * @param _root Merkle root of the current circle's epoch
+	 * @param _amount Amount of tokens to withdraw
+	 * @param _tapType Ape vault's type tap (pure profit, mixed, simple token)
+	 */
 	function uploadEpochRoot(
 		address _vault,
 		bytes32 _circle,
@@ -49,7 +58,6 @@ contract ApeDistributor is ApeAllowanceModule, Ownable {
 		external {
 		require(vaultApprovals[_vault][_circle] == msg.sender || ApeVaultWrapper(_vault).owner() == msg.sender, "Sender cannot upload a root");
 		require(address(ApeVaultWrapper(_vault).vault()) == _token, "Vault cannot supply token");
-		// require(circleToken[_circle][_token], "Token not accepted");
 		_isTapAllowed(_vault, _circle, _token, _amount);
 		uint256 epoch = epochTracking[_circle][_token];
 		epochRoots[_circle][_token][epoch] = _root;
@@ -64,6 +72,12 @@ contract ApeDistributor is ApeAllowanceModule, Ownable {
 			emit apeVaultFundsTapped(_vault, address(ApeVaultWrapper(_vault).vault()), sharesRemoved);
 	}
 
+	/**  
+	 * @notice
+	 * Used to allow an ape vault owner to set an admin for a circle
+	 * @param _cicle Circle ID of future admin
+	 * @param _admin Address of allowed admin to call `uploadEpochRoot`
+	 */
 	function updateCircleAdmin(bytes32 _circle, address _admin) external {
 		vaultApprovals[msg.sender][_circle] = _admin;
 		emit AdminApproved(msg.sender, _circle, _admin);
@@ -83,6 +97,18 @@ contract ApeDistributor is ApeAllowanceModule, Ownable {
 		epochClaimBitMap[_circle][_token][_epoch][wordIndex] |= 1 << bitIndex;
 	}
 
+	/**  
+	 * @notice
+	 * Used to allow circle users to claim their allocation of a given epoch
+	 * @param _cicle Circle ID of the user
+	 * @param _token Address of token claimed
+	 * @param _epoch Epoch ID associated to the claim
+	 * @param _index Position of user's address in the merkle tree
+	 * @param _account Address of user
+	 * @param _checkpoint Total amount of tokens claimed by user (enables to claim multiple epochs at once)
+	 * @param _redeemShares Boolean to allow user to redeem underlying tokens of a yearn vault (prerequisite: _token must be a yvToken)
+	 * @param _proof Merkle proof to verify user is entitled to claim
+	 */
 	function claim(bytes32 _circle, address _token, uint256 _epoch, uint256 _index, address _account, uint256 _checkpoint, bool _redeemShares, bytes32[] memory _proof) public {
 		require(!isClaimed(_circle, _token, _epoch, _index), "Claimed already");
 		bytes32 node = keccak256(abi.encodePacked(_index, _account, _checkpoint));
@@ -102,6 +128,17 @@ contract ApeDistributor is ApeAllowanceModule, Ownable {
 		emit Claimed(_circle, _token, _epoch, _index, _account, claimable);
 	}
 
+		/**  
+	 * @notice
+	 * Used to allow circle users to claim many tokens at once if applicable
+	 * Operated similarly to the `claim` function but due to "Stack too deep errors",
+	 * input data was concatenated into similar typed arrays
+	 * @param _cicles Array of Circle IDs of the user
+	 * @param _tokensAndAccounts Array containing token addresses and accounts of user
+	 * @param _epochsIndexesCheckpointsArray contaning  Epoch IDs, indexes of user in merkle trees and checkpoints associated to the claim
+	 * @param _redeemShares Boolean array  to allow user to redeem underlying tokens of a yearn vault (prerequisite: _token must be a yvToken)
+	 * @param _proofs Array of merkle proofs to verify user is entitled to claim
+	 */
 	function claimMany(
 		bytes32[] calldata _circles,
 		address[] calldata _tokensAndAccounts,

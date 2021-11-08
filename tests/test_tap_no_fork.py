@@ -26,10 +26,10 @@ def test_tap_profit(mock_ape_reg, mock_ape_fee, mock_ape_distro, mock_ape_router
     user = accounts[0]
     amount = 1_000_000_000_000
     #          100_000_000_000
-    mock_token = MockToken.deploy({'from':user})
+    mock_token = MockToken.deploy('hello', 'h',{'from':user})
     mock_token.mint(amount, {'from':user})
     mock_token.approve(mock_ape_router, 2 ** 256 -1, {'from':user})
-    new_vault_tx = mock_yearn_vault_factories.createVault(mock_token, {'from':user})
+    new_vault_tx = mock_yearn_vault_factories.createVault(mock_token, 'yvhello', 'yvh',{'from':user})
     vault = MockVault.at(new_vault_tx.new_contracts[0])
     tx = mock_ape_factory.createApeVault(mock_token, '0x0000000000000000000000000000000000000000', {'from':user})
     ape_vault = ApeVaultWrapper.at(tx.new_contracts[0])
@@ -60,10 +60,10 @@ def test_expected_profit_revert(mock_ape_reg, mock_ape_fee, mock_ape_distro, moc
     user = accounts[0]
     amount = 1_000_000_000_000
     #          100_000_000_000
-    mock_token = MockToken.deploy({'from':user})
+    mock_token = MockToken.deploy('hello', 'h',{'from':user})
     mock_token.mint(amount, {'from':user})
     mock_token.approve(mock_ape_router, 2 ** 256 -1, {'from':user})
-    new_vault_tx = mock_yearn_vault_factories.createVault(mock_token, {'from':user})
+    new_vault_tx = mock_yearn_vault_factories.createVault(mock_token, 'yvhello', 'yvh',{'from':user})
     vault = MockVault.at(new_vault_tx.new_contracts[0])
     tx = mock_ape_factory.createApeVault(mock_token, '0x0000000000000000000000000000000000000000', {'from':user})
     ape_vault = ApeVaultWrapper.at(tx.new_contracts[0])
@@ -92,27 +92,18 @@ def test_bad_harvest_reset_value(mock_ape_reg, mock_ape_fee, mock_ape_distro, mo
     user = accounts[0]
     amount = 1_000_000_000_000
     #           20_000_000_000
-    mock_token = MockToken.deploy({'from':user})
+    mock_token = MockToken.deploy('hello', 'h', {'from':user})
     mock_token.mint(amount, {'from':user})
     mock_token.approve(mock_ape_router, 2 ** 256 -1, {'from':user})
-    new_vault_tx = mock_yearn_vault_factories.createVault(mock_token, {'from':user})
+    new_vault_tx = mock_yearn_vault_factories.createVault(mock_token, 'yvhello', 'yvh',{'from':user})
     vault = MockVault.at(new_vault_tx.new_contracts[0])
     tx = mock_ape_factory.createApeVault(mock_token, '0x0000000000000000000000000000000000000000', {'from':user})
     ape_vault = ApeVaultWrapper.at(tx.new_contracts[0])
     mock_ape_router.delegateDeposit(ape_vault, mock_token, amount, {'from':user})
     assert vault.balanceOf(ape_vault) == amount
 
-    # print(f'price per share: {vault.pricePerShare()}')
-    # print(f'profit: {ape_vault.profit()}')
-    # print(f'underlying: {ape_vault.underlyingValue()}')
-
     # 90% bad yield
     vault.badHarvest(90, {'from':user})
-
-
-    # print(f'price per share: {vault.pricePerShare()}')
-    # print(f'profit: {ape_vault.profit()}')
-    # print(f'underlying: {ape_vault.underlyingValue()}')
 
     ape_vault.syncUnderlying({'from':user})
     print(f'underlying: {ape_vault.underlyingValue()}')
@@ -126,10 +117,6 @@ def test_bad_harvest_reset_value(mock_ape_reg, mock_ape_fee, mock_ape_distro, mo
     ape_vault.updateAllowance(circle, token, grant, interval, epochs, {'from':user})
     admin = accounts[1]
     ape_vault.approveCircleAdmin(circle, admin, {'from':user})
-    # print(f'price per share: {vault.pricePerShare()}')
-    # print(f'profit: {ape_vault.profit()}')
-    # print(f'underlying: {ape_vault.underlyingValue()}')
-    # print(ape_vault.wtf(grant // 10))
     with reverts('Not enough profit to cover epoch'):
         mock_ape_distro.uploadEpochRoot(ape_vault, circle, token, root, grant // 10, TAP_PROFIT, {'from': admin})
     vault.goodHarvest(100, {'from':user})

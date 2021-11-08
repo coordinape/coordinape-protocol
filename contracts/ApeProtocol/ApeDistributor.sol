@@ -42,7 +42,7 @@ contract ApeDistributor is ApeAllowanceModule, Ownable {
 	 * @notice
 	 * Used to allow a circle to supply an epoch with funds from a given ape vault
 	 * @param _vault Address of ape vault from which to take funds from
-	 * @param _cicle Circle ID querying the funds
+	 * @param _circle Circle ID querying the funds
 	 * @param _token Address of the token to withdraw from the vault
 	 * @param _root Merkle root of the current circle's epoch
 	 * @param _amount Amount of tokens to withdraw
@@ -75,7 +75,7 @@ contract ApeDistributor is ApeAllowanceModule, Ownable {
 	/**  
 	 * @notice
 	 * Used to allow an ape vault owner to set an admin for a circle
-	 * @param _cicle Circle ID of future admin
+	 * @param _circle Circle ID of future admin
 	 * @param _admin Address of allowed admin to call `uploadEpochRoot`
 	 */
 	function updateCircleAdmin(bytes32 _circle, address _admin) external {
@@ -100,7 +100,7 @@ contract ApeDistributor is ApeAllowanceModule, Ownable {
 	/**  
 	 * @notice
 	 * Used to allow circle users to claim their allocation of a given epoch
-	 * @param _cicle Circle ID of the user
+	 * @param _circle Circle ID of the user
 	 * @param _token Address of token claimed
 	 * @param _epoch Epoch ID associated to the claim
 	 * @param _index Position of user's address in the merkle tree
@@ -128,14 +128,14 @@ contract ApeDistributor is ApeAllowanceModule, Ownable {
 		emit Claimed(_circle, _token, _epoch, _index, _account, claimable);
 	}
 
-		/**  
+	/**
 	 * @notice
 	 * Used to allow circle users to claim many tokens at once if applicable
 	 * Operated similarly to the `claim` function but due to "Stack too deep errors",
 	 * input data was concatenated into similar typed arrays
-	 * @param _cicles Array of Circle IDs of the user
+	 * @param _circles Array of Circle IDs of the user
 	 * @param _tokensAndAccounts Array containing token addresses and accounts of user
-	 * @param _epochsIndexesCheckpointsArray contaning  Epoch IDs, indexes of user in merkle trees and checkpoints associated to the claim
+	 * @param _epochsIndexesCheckpoints Array contaning  Epoch IDs, indexes of user in merkle trees and checkpoints associated to the claim
 	 * @param _redeemShares Boolean array  to allow user to redeem underlying tokens of a yearn vault (prerequisite: _token must be a yvToken)
 	 * @param _proofs Array of merkle proofs to verify user is entitled to claim
 	 */

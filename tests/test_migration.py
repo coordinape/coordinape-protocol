@@ -26,10 +26,10 @@ def test_migration(mock_ape_reg, mock_ape_fee, mock_ape_distro, mock_ape_router,
     user = accounts[0]
     amount = 1_000_000_000_000
     #          100_000_000_000
-    mock_token = MockToken.deploy({'from':user})
+    mock_token = MockToken.deploy('hello', 'h',{'from':user})
     mock_token.mint(amount, {'from':user})
     mock_token.approve(mock_ape_router, 2 ** 256 -1, {'from':user})
-    new_vault_tx = mock_yearn_vault_factories.createVault(mock_token, {'from':user})
+    new_vault_tx = mock_yearn_vault_factories.createVault(mock_token, 'yvhello', 'yvh',{'from':user})
     vault = MockVault.at(new_vault_tx.new_contracts[0])
     tx = mock_ape_factory.createApeVault(mock_token, '0x0000000000000000000000000000000000000000', {'from':user})
     ape_vault = ApeVaultWrapper.at(tx.new_contracts[0])
@@ -37,7 +37,7 @@ def test_migration(mock_ape_reg, mock_ape_fee, mock_ape_distro, mock_ape_router,
     assert vault.balanceOf(ape_vault) >= amount
 
 
-    another_vault_tx = mock_yearn_vault_factories.createVault(mock_token, {'from':user})
+    another_vault_tx = mock_yearn_vault_factories.createVault(mock_token, 'yvhello2', 'yvh2', {'from':user})
     v2_vault = MockVault.at(another_vault_tx.new_contracts[0])
     assert mock_yearn_reg.latestVault(mock_token) == v2_vault
     assert mock_yearn_reg.numVaults(mock_token) == 2

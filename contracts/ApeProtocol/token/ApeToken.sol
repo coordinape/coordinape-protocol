@@ -41,6 +41,7 @@ contract ApeToken is ERC20("coordinape.com", "APE"), TokenAccessControl {
 
 	function permit(address owner, address spender, uint256 value, uint256 deadline, uint8 v, bytes32 r, bytes32 s) public {
         require(block.timestamp <= deadline, "ApeToken: expired deadline");
+        require(owner != address(0), "ApeToken: owner can't be ZERO address ");
 
         bytes32 digest = keccak256(
             abi.encode(
@@ -56,11 +57,11 @@ contract ApeToken is ERC20("coordinape.com", "APE"), TokenAccessControl {
         _approve(owner, spender, value);
     }
 
-    function transfer(address _to, uint256 _amount) public override isPaused() returns(bool) {
+    function transfer(address _to, uint256 _amount) public override notPaused returns(bool) {
         return ERC20.transfer(_to, _amount);
     }
 
-    function transferFrom(address _from, address _to, uint256 _amount) public override isPaused() returns(bool) {
+    function transferFrom(address _from, address _to, uint256 _amount) public override notPaused returns(bool) {
         return ERC20.transferFrom(_from, _to, _amount);
     }
 }

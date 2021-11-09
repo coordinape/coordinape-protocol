@@ -17,8 +17,8 @@ contract TokenAccessControl is Ownable {
 	event WhitelistedAddressesRemoved(address[] minters);
 
 
-	modifier isPaused() {
-		require(!paused || (whitelistedAddresses[msg.sender] && !whitelistDisabled), "AccessControl: User cannot transfer");
+	modifier notPaused() {
+		require(!paused || (!whitelistDisabled && whitelistedAddresses[msg.sender]), "AccessControl: User cannot transfer");
 		_;
 	}
 

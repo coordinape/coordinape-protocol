@@ -39,11 +39,40 @@ def test_root_upload(ape_reg, ape_fee, ape_distro, ape_router, ape_factory, big_
     interval = 60 * 60 * 14 # 14 days
     epochs = 4
     root = '0x1838e0c6251730868cce6768e2062af0e72f79409a1f7011351bd2c1535e2a5c'
-    ape_vault.updateAllowance(circle, token, grant, interval, epochs, 0,{'from':user})
+    ape_vault.updateAllowance(circle, token, grant, interval, epochs, 0, False,{'from':user})
     admin = accounts[1]
     ape_vault.approveCircleAdmin(circle, admin, {'from':user})
     with reverts('Sender cannot upload a root'):
         ape_distro.uploadEpochRoot(ape_vault, circle, token, root, grant, TAP_BASE, {'from': accounts[2]})
+    ape_distro.uploadEpochRoot(ape_vault, circle, token, root, grant, TAP_BASE, {'from': admin})
+    assert usdc_vault.balanceOf(ape_distro) == grant
+    assert ape_distro.epochRoots(circle, token, 0) == root
+
+def test_root_upload_epoch_revert(ape_reg, ape_fee, ape_distro, ape_router, ape_factory, big_usdc, usdc, ApeVaultWrapper, minter, interface, chain):
+    setup_protocol(ape_reg, ape_fee, ape_distro, ape_router, ape_factory, minter)
+    user = accounts[0]
+    amount = 1_000_000_000_000
+    usdc.transfer(user, amount, {'from':big_usdc})
+    usdc.approve(ape_router, 2 ** 256 -1, {'from':user})
+    tx = ape_factory.createApeVault(usdc, '0x0000000000000000000000000000000000000000', {'from':user})
+    ape_vault = ApeVaultWrapper.at(tx.new_contracts[0])
+    ape_router.delegateDeposit(ape_vault, usdc, amount, {'from':user})
+    usdc_vault = interface.IERC20('0x5f18C75AbDAe578b483E5F43f12a39cF75b973a9')
+    assert usdc_vault.balanceOf(ape_vault) >= Wei('20_000_000_000')
+    circle = '0x1'
+    token = usdc_vault
+    grant = Wei('20_000_000_000')
+    interval = 60 * 60 * 14 # 14 days
+    epochs = 4
+    root = '0x1838e0c6251730868cce6768e2062af0e72f79409a1f7011351bd2c1535e2a5c'
+    ape_vault.updateAllowance(circle, token, grant, interval, epochs, int(time.time() + 3600), False,{'from':user})
+    admin = accounts[1]
+    ape_vault.approveCircleAdmin(circle, admin, {'from':user})
+    with reverts('Sender cannot upload a root'):
+        ape_distro.uploadEpochRoot(ape_vault, circle, token, root, grant, TAP_BASE, {'from': accounts[2]})
+    with reverts('Epoch has not started'):
+        ape_distro.uploadEpochRoot(ape_vault, circle, token, root, grant, TAP_BASE, {'from': admin})
+    chain.sleep(3601)
     ape_distro.uploadEpochRoot(ape_vault, circle, token, root, grant, TAP_BASE, {'from': admin})
     assert usdc_vault.balanceOf(ape_distro) == grant
     assert ape_distro.epochRoots(circle, token, 0) == root
@@ -64,7 +93,7 @@ def test_allowance_revert(ape_reg, ape_fee, ape_distro, ape_router, ape_factory,
     interval = 60 * 60 * 24 * 14 # 14 days
     epochs = 4
     root = '0x1838e0c6251730868cce6768e2062af0e72f79409a1f7011351bd2c1535e2a5c'
-    ape_vault.updateAllowance(circle, token, grant, interval, epochs, 0,{'from':user})
+    ape_vault.updateAllowance(circle, token, grant, interval, epochs, 0, False, {'from':user})
     admin = accounts[1]
     ape_vault.approveCircleAdmin(circle, admin, {'from':user})
     with reverts('Sender cannot upload a root'):
@@ -72,13 +101,13 @@ def test_allowance_revert(ape_reg, ape_fee, ape_distro, ape_router, ape_factory,
     ape_distro.uploadEpochRoot(ape_vault, circle, token, root, grant // 2, TAP_BASE, {'from': admin})
     assert usdc_vault.balanceOf(ape_distro) == grant // 2
     assert ape_distro.epochRoots(circle, token, 0) == root
-    with reverts('Circle does not have sufficient allowance'):
+    with reverts('Cooldown interval not finished'):
         ape_distro.uploadEpochRoot(ape_vault, circle, token, root, grant // 2 + 1, TAP_BASE, {'from': admin})
     # spend epoch count allowance
     ape_distro.uploadEpochRoot(ape_vault, circle, token, root, grant // 8, TAP_BASE, {'from': admin})
     ape_distro.uploadEpochRoot(ape_vault, circle, token, root, grant // 8, TAP_BASE, {'from': admin})
     ape_distro.uploadEpochRoot(ape_vault, circle, token, root, grant // 8, TAP_BASE, {'from': admin})
-    with reverts('Circle does not have sufficient allowance'):
+    with reverts('Cooldown interval not finished'):
         ape_distro.uploadEpochRoot(ape_vault, circle, token, root, grant // 2 + 1, TAP_BASE, {'from': admin})
 
 def test_allowance_interval(ape_reg, ape_fee, ape_distro, ape_router, ape_factory, big_usdc, usdc, ApeVaultWrapper, minter, interface, chain):
@@ -97,7 +126,7 @@ def test_allowance_interval(ape_reg, ape_fee, ape_distro, ape_router, ape_factor
     interval = 60 * 60 * 24 * 14 # 14 days
     epochs = 5
     root = '0x1838e0c6251730868cce6768e2062af0e72f79409a1f7011351bd2c1535e2a5c'
-    ape_vault.updateAllowance(circle, token, grant, interval, epochs, 0,{'from':user})
+    ape_vault.updateAllowance(circle, token, grant, interval, epochs, 0, False,{'from':user})
     admin = accounts[1]
     ape_vault.approveCircleAdmin(circle, admin, {'from':user})
     with reverts('Sender cannot upload a root'):
@@ -107,15 +136,15 @@ def test_allowance_interval(ape_reg, ape_fee, ape_distro, ape_router, ape_factor
     assert usdc_vault.balanceOf(ape_distro) == grant // 2
     assert ape_distro.epochRoots(circle, token, 0) == root
     
-    with reverts('Circle does not have sufficient allowance'):
+    with reverts('Cooldown interval not finished'):
         ape_distro.uploadEpochRoot(ape_vault, circle, token, root, grant // 2 + 1, TAP_BASE, {'from': admin})
     chain.sleep(interval + 1)
     ape_distro.uploadEpochRoot(ape_vault, circle, token, root, grant // 2, TAP_BASE, {'from': admin})
-    with reverts('Circle does not have sufficient allowance'):
-        ape_distro.uploadEpochRoot(ape_vault, circle, token, root, grant, TAP_BASE, {'from': admin})
+    ape_distro.uploadEpochRoot(ape_vault, circle, token, root, grant, TAP_BASE, {'from': admin})
     for i in range(4):
         chain.sleep(interval + 1)
         ape_distro.uploadEpochRoot(ape_vault, circle, token, root, grant, TAP_BASE, {'from': admin})
+        print(ape_distro.currentAllowances(ape_vault, circle, token))
     chain.sleep(interval + 1)
     with reverts('Circle cannot tap anymore'):
         ape_distro.uploadEpochRoot(ape_vault, circle, token, root, grant // 2 + 1, TAP_BASE, {'from': admin})
@@ -136,7 +165,7 @@ def test_allowance_one_time(ape_reg, ape_fee, ape_distro, ape_router, ape_factor
     interval = 60 * 60 * 24 * 14 # 14 days
     epochs = 0
     root = '0x1838e0c6251730868cce6768e2062af0e72f79409a1f7011351bd2c1535e2a5c'
-    ape_vault.updateAllowance(circle, token, grant, interval, epochs, 0,{'from':user})
+    ape_vault.updateAllowance(circle, token, grant, interval, epochs, 0, False,{'from':user})
     admin = accounts[1]
     ape_vault.approveCircleAdmin(circle, admin, {'from':user})
     with reverts('Sender cannot upload a root'):
@@ -146,7 +175,7 @@ def test_allowance_one_time(ape_reg, ape_fee, ape_distro, ape_router, ape_factor
     assert usdc_vault.balanceOf(ape_distro) == grant // 2
     assert ape_distro.epochRoots(circle, token, 0) == root
     
-    with reverts('Circle does not have sufficient allowance'):
+    with reverts('Cooldown interval not finished'):
         ape_distro.uploadEpochRoot(ape_vault, circle, token, root, grant // 2 + 1, TAP_BASE, {'from': admin})
     chain.sleep(interval + 1)
     with reverts('Circle cannot tap anymore'):
@@ -169,19 +198,19 @@ def test_allowance_start_time_future(ape_reg, ape_fee, ape_distro, ape_router, a
     epochs = 0
     start_time = int(time.time()) + 3600
     root = '0x1838e0c6251730868cce6768e2062af0e72f79409a1f7011351bd2c1535e2a5c'
-    ape_vault.updateAllowance(circle, token, grant, interval, epochs, start_time,{'from':user})
+    ape_vault.updateAllowance(circle, token, grant, interval, epochs, start_time, False,{'from':user})
     admin = accounts[1]
     ape_vault.approveCircleAdmin(circle, admin, {'from':user})
     with reverts('Sender cannot upload a root'):
         ape_distro.uploadEpochRoot(ape_vault, circle, token, root, grant, TAP_BASE, {'from': accounts[2]})
-    with reverts('Integer overflow'):
+    with reverts('Epoch has not started'):
         ape_distro.uploadEpochRoot(ape_vault, circle, token, root, grant // 2, TAP_BASE, {'from': admin})
-    chain.sleep(36001)
+    chain.sleep(3601)
     ape_distro.uploadEpochRoot(ape_vault, circle, token, root, grant // 2, TAP_BASE, {'from': admin})
     assert usdc_vault.balanceOf(ape_distro) == grant // 2
     assert ape_distro.epochRoots(circle, token, 0) == root
     
-    with reverts('Circle does not have sufficient allowance'):
+    with reverts('Cooldown interval not finished'):
         ape_distro.uploadEpochRoot(ape_vault, circle, token, root, grant // 2 + 1, TAP_BASE, {'from': admin})
     chain.sleep(interval + 1)
     with reverts('Circle cannot tap anymore'):
@@ -203,7 +232,7 @@ def test_claiming(ape_reg, ape_fee, ape_distro, ape_router, ape_factory, big_usd
     interval = 60 * 60 * 24 * 14 # 14 days
     epochs = 4
     root = '0x1838e0c6251730868cce6768e2062af0e72f79409a1f7011351bd2c1535e2a5c'
-    ape_vault.updateAllowance(circle, token, grant, interval, epochs, 0,{'from':user})
+    ape_vault.updateAllowance(circle, token, grant, interval, epochs, 0, False,{'from':user})
     admin = accounts[1]
     ape_vault.approveCircleAdmin(circle, admin, {'from':user})
     with reverts('Sender cannot upload a root'):
@@ -251,7 +280,7 @@ def test_claiming_many(ape_reg, ape_fee, ape_distro, ape_router, ape_factory, bi
     interval = 60 * 60 * 24 * 14 # 14 days
     epochs = 4
     root = '0x1838e0c6251730868cce6768e2062af0e72f79409a1f7011351bd2c1535e2a5c'
-    ape_vault.updateAllowance(circle, token, grant, interval, epochs, 0,{'from':user})
+    ape_vault.updateAllowance(circle, token, grant, interval, epochs, 0, False,{'from':user})
     admin = accounts[1]
     ape_vault.approveCircleAdmin(circle, admin, {'from':user})
     with reverts('Sender cannot upload a root'):
@@ -297,3 +326,56 @@ def test_claiming_many(ape_reg, ape_fee, ape_distro, ape_router, ape_factory, bi
     assert usdc_vault.balanceOf(adds[2]) - pre2 == 4_000_000_000
     assert usdc_vault.balanceOf(adds[3]) - pre3 == 5_000_000_000
     assert usdc_vault.balanceOf(adds[4]) - pre4 == 6_000_000_000
+
+def test_allowance_monthly(ape_reg, ape_fee, ape_distro, ape_router, ape_factory, big_usdc, usdc, ApeVaultWrapper, minter, interface, chain):
+    setup_protocol(ape_reg, ape_fee, ape_distro, ape_router, ape_factory, minter)
+    user = accounts[0]
+    amount = 1_000_000_000_000
+    usdc.transfer(user, amount, {'from':big_usdc})
+    usdc.approve(ape_router, 2 ** 256 -1, {'from':user})
+    tx = ape_factory.createApeVault(usdc, '0x0000000000000000000000000000000000000000', {'from':user})
+    ape_vault = ApeVaultWrapper.at(tx.new_contracts[0])
+    ape_router.delegateDeposit(ape_vault, usdc, amount, {'from':user})
+    usdc_vault = interface.IERC20('0x5f18C75AbDAe578b483E5F43f12a39cF75b973a9')
+    circle = '0x1'
+    token = usdc_vault
+    grant = Wei('20_000_000_000')
+    interval = 60 * 60 * 24 * 28 # 28 days
+    epochs = 11
+    root = '0x1838e0c6251730868cce6768e2062af0e72f79409a1f7011351bd2c1535e2a5c'
+    ape_vault.updateAllowance(circle, token, grant, interval, epochs, 0, False,{'from':user})
+    admin = accounts[1]
+    ape_vault.approveCircleAdmin(circle, admin, {'from':user})
+    with reverts('Sender cannot upload a root'):
+        ape_distro.uploadEpochRoot(ape_vault, circle, token, root, grant, TAP_BASE, {'from': accounts[2]})
+    ape_distro.uploadEpochRoot(ape_vault, circle, token, root, grant, TAP_BASE, {'from': admin})
+
+    assert usdc_vault.balanceOf(ape_distro) == grant
+    assert ape_distro.epochRoots(circle, token, 0) == root
+
+    chain.sleep(60 * 60 * 24 * 31)
+    ape_distro.uploadEpochRoot(ape_vault, circle, token, root, grant, TAP_BASE, {'from': admin})
+    chain.sleep(60 * 60 * 24 * 28 + 1)
+    ape_distro.uploadEpochRoot(ape_vault, circle, token, root, grant, TAP_BASE, {'from': admin})
+    chain.sleep(60 * 60 * 24 * 31)
+    ape_distro.uploadEpochRoot(ape_vault, circle, token, root, grant, TAP_BASE, {'from': admin})
+    chain.sleep(60 * 60 * 24 * 30)
+    ape_distro.uploadEpochRoot(ape_vault, circle, token, root, grant, TAP_BASE, {'from': admin})
+    chain.sleep(60 * 60 * 24 * 31)
+    ape_distro.uploadEpochRoot(ape_vault, circle, token, root, grant, TAP_BASE, {'from': admin})
+    chain.sleep(60 * 60 * 24 * 30)
+    ape_distro.uploadEpochRoot(ape_vault, circle, token, root, grant, TAP_BASE, {'from': admin})
+    chain.sleep(60 * 60 * 24 * 31)
+    ape_distro.uploadEpochRoot(ape_vault, circle, token, root, grant, TAP_BASE, {'from': admin})
+    chain.sleep(60 * 60 * 24 * 31)
+    ape_distro.uploadEpochRoot(ape_vault, circle, token, root, grant, TAP_BASE, {'from': admin})
+    chain.sleep(60 * 60 * 24 * 30)
+    ape_distro.uploadEpochRoot(ape_vault, circle, token, root, grant, TAP_BASE, {'from': admin})
+    chain.sleep(60 * 60 * 24 * 31)
+    ape_distro.uploadEpochRoot(ape_vault, circle, token, root, grant, TAP_BASE, {'from': admin})
+    chain.sleep(60 * 60 * 24 * 30)
+    ape_distro.uploadEpochRoot(ape_vault, circle, token, root, grant, TAP_BASE, {'from': admin})
+
+    chain.sleep(60 * 60 * 24 * 31)
+    with reverts('Circle cannot tap anymore'):
+        ape_distro.uploadEpochRoot(ape_vault, circle, token, root, grant // 2 + 1, TAP_BASE, {'from': admin})

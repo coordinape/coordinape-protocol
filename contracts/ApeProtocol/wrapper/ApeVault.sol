@@ -223,10 +223,11 @@ contract ApeVaultWrapper is BaseWrapper, Ownable {
 		uint256 _amount,
 		uint256 _interval,
 		uint256 _epochAmount,
-		uint256 _intervalStart
+		uint256 _intervalStart,
+		bool _instantFund
 		) external onlyOwner {
 		ApeDistributor(
 			ApeRegistry(apeRegistry).distributor()
-		).setAllowance(_circle, _token, _amount, _interval, _epochAmount, _intervalStart);
+		).setAllowance(_circle, _token, _amount, _interval, _epochAmount, _intervalStart, _instantFund);
 	}
 }

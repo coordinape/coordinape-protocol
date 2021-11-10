@@ -1,16 +1,67 @@
 pragma solidity ^0.8.2;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
-import "../../../interfaces/IApeVault.sol";
-import "../ApeDistributor.sol";
-import "../ApeAllowanceModule.sol";
-import "../ApeRegistry.sol";
-import "../FeeRegistry.sol";
-import "../ApeRouter.sol";
+import "../../../../interfaces/IApeVault.sol";
+import "../../ApeDistributor.sol";
+import "../../ApeAllowanceModule.sol";
+import "../../ApeRegistry.sol";
+import "../../FeeRegistry.sol";
+import "../../ApeRouter.sol";
 
-import "./BaseWrapper.sol";
+import "./BaseWrapperImplementation.sol";
 
-contract ApeVaultWrapper is BaseWrapper, Ownable {
+abstract contract OwnableImplementation {
+    address internal _owner;
+
+    event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
+
+    /**
+     * @dev Initializes the contract setting the deployer as the initial owner.
+     */
+    // constructor () {
+    //     address msgSender = _msgSender();
+    //     _owner = msgSender;
+    //     emit OwnershipTransferred(address(0), msgSender);
+    // }
+
+    /**
+     * @dev Returns the address of the current owner.
+     */
+    function owner() public view virtual returns (address) {
+        return _owner;
+    }
+
+    /**
+     * @dev Throws if called by any account other than the owner.
+     */
+    modifier onlyOwner() {
+        require(owner() == msg.sender, "Ownable: caller is not the owner");
+        _;
+    }
+
+    /**
+     * @dev Leaves the contract without owner. It will not be possible to call
+     * `onlyOwner` functions anymore. Can only be called by the current owner.
+     *
+     * NOTE: Renouncing ownership will leave the contract without an owner,
+     * thereby removing any functionality that is only available to the owner.
+     */
+    function renounceOwnership() public virtual onlyOwner {
+        emit OwnershipTransferred(_owner, address(0));
+        _owner = address(0);
+    }
+
+    /**
+     * @dev Transfers ownership of the contract to a new account (`newOwner`).
+     * Can only be called by the current owner.
+     */
+    function transferOwnership(address newOwner) public virtual onlyOwner {
+        require(newOwner != address(0), "Ownable: new owner is the zero address");
+        emit OwnershipTransferred(_owner, newOwner);
+        _owner = newOwner;
+    }
+}
+
+contract ApeVaultWrapperImplementation is BaseWrapperImplementation, OwnableImplementation {
 	using SafeERC20 for VaultAPI;
 	using SafeERC20 for IERC20;
 
@@ -20,20 +71,40 @@ contract ApeVaultWrapper is BaseWrapper, Ownable {
 
 	mapping(address => bool) public hasAccess;
 
+	bool internal setup;
 	uint256 public underlyingValue;
 	address public apeRegistry;
 	VaultAPI public vault;
 	ApeAllowanceModule public allowanceModule;
 
-	constructor(
+	// constructor(
+	// 	address _apeRegistry,
+	//     address _token,
+    //     address _registry,
+	// 	address _simpleToken) BaseWrapper(_token, _registry) {
+	// 	apeRegistry = _apeRegistry;
+	// 	if (_token != address(0))
+	// 		vault = VaultAPI(RegistryAPI(_registry).latestVault(_token));
+	// 	simpleToken = IERC20(_simpleToken);
+	// }
+
+	function init(
 		address _apeRegistry,
-	    address _token,
-        address _registry,
-		address _simpleToken) BaseWrapper(_token, _registry) {
+		address _token,
+		address _registry,
+		address _simpleToken) external {
+		require(!setup);
 		apeRegistry = _apeRegistry;
 		if (_token != address(0))
 			vault = VaultAPI(RegistryAPI(_registry).latestVault(_token));
 		simpleToken = IERC20(_simpleToken);
+
+		// Recommended to use a token with a `Registry.latestVault(_token) != address(0)`
+        token = IERC20(_token);
+        // Recommended to use `v2.registry.ychad.eth`
+        registry = RegistryAPI(_registry);
+		_owner = msg.sender;
+        emit OwnershipTransferred(address(0), msg.sender);
 	}
 
 	event ApeVaultFundWithdrawal(address indexed apeVault, address vault, uint256 _amount, bool underlying);

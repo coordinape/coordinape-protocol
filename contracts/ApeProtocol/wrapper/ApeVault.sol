@@ -215,16 +215,18 @@ contract ApeVaultWrapper is BaseWrapper, Ownable {
 	 * @param _interval Seconds in between each epochs
 	 * @param _epochAmount Amount of epochs to fund (0 means you're at least funding one epoch)
 	 * If you want to stop funding a circle, set _amount to 0
+	 * @param _intervalStart Unix timestamp fromw hich epoch starts (block.timestamp if 0)
 	 */
 	function updateAllowance(
 		bytes32 _circle,
 		address _token,
 		uint256 _amount,
 		uint256 _interval,
-		uint256 _epochAmount
+		uint256 _epochAmount,
+		uint256 _intervalStart
 		) external onlyOwner {
 		ApeDistributor(
 			ApeRegistry(apeRegistry).distributor()
-		).setAllowance(_circle, _token, _amount, _interval, _epochAmount);
+		).setAllowance(_circle, _token, _amount, _interval, _epochAmount, _intervalStart);
 	}
 }

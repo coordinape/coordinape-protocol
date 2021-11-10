@@ -29,20 +29,20 @@ contract MockVaultFactory {
 		registry = MockRegistry(_reg);
 	}
 
-	function createVault(address _token) external returns(address) {
-		MockVault newVault = new MockVault(_token);
+	function createVault(address _token, string memory _name, string memory _symbol) public returns(address) {
+		MockVault newVault = new MockVault(_token, _name, _symbol);
 		registry.addVault(_token, address(newVault));
 		return address(newVault);
 	}
 }
 
-contract MockVault is ERC20("VaultToken", "VT") {
+contract MockVault is ERC20 {
 
 	MockToken public token;
 
 	uint256 public depositLimit;
 
-	constructor (address _token) {
+	constructor (address _token, string memory _name, string memory _symbol) ERC20(_name, _symbol){
 		token = MockToken(_token);
 		depositLimit = type(uint256).max;
 	}
@@ -112,7 +112,9 @@ contract MockVault is ERC20("VaultToken", "VT") {
 	}
 }
 
-contract MockToken is ERC20("Mock", "MCK") {
+contract MockToken is ERC20 {
+
+	constructor(string memory _name, string memory _symbol) ERC20(_name, _symbol) {}
 	function mint(uint256 _amount) external {
 		_mint(msg.sender, _amount);
 	}

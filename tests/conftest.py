@@ -42,6 +42,22 @@ def ape_fee(FeeRegistry, minter):
     return FeeRegistry.deploy({'from':minter})
 
 @pytest.fixture()
+def implementation(ApeVaultWrapperImplementation, minter):
+    return ApeVaultWrapperImplementation.deploy({'from':minter})
+
+@pytest.fixture()
+def beacon(ApeUgradeableBeacon, minter, implementation):
+    return ApeUgradeableBeacon.deploy(implementation, 0, {'from':minter})
+
+@pytest.fixture()
+def ape_factory_beacon(ApeVaultFactoryBeacon, ape_reg, yearn_reg, minter, beacon):
+    return ApeVaultFactoryBeacon.deploy(yearn_reg, ape_reg, beacon, {'from':minter})
+
+@pytest.fixture()
+def ape_router_beacon(ApeRouter, yearn_reg, ape_factory_beacon, minter):
+    return ApeRouter.deploy(yearn_reg, ape_factory_beacon, 0, {'from':minter})
+
+@pytest.fixture()
 def mock_yearn_reg(MockRegistry, minter):
     return MockRegistry.deploy({'from':minter})
 

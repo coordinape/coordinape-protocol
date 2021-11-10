@@ -29,13 +29,15 @@ abstract contract ApeAllowanceModule {
 	 * @param _amount Amount to take out at most
 	 * @param _interval Duration of an epoch in seconds
 	 * @param _epochs Amount of epochs to fund. Expected_funded_epochs = _epochs + 1
+	 * @param _intervalStart Unix timestamp fromw hich epoch starts (block.timestamp if 0)
 	 */
 	function setAllowance(
 		bytes32 _circle,
 		address _token,
 		uint256 _amount,
 		uint256 _interval,
-		uint256 _epochs
+		uint256 _epochs,
+		uint256 _intervalStart
 		) external {
 		allowances[msg.sender][_circle][_token] = Allowance({
 			maxAmount: _amount,
@@ -44,7 +46,7 @@ abstract contract ApeAllowanceModule {
 
 		currentAllowances[msg.sender][_circle][_token] = CurrentAllowance({
 			debt: 0,
-			intervalStart: block.timestamp,
+			intervalStart: _intervalStart == 0 ? block.timestamp : _intervalStart,
 			epochs: _epochs
 		});
 		emit AllowanceUpdated(msg.sender, _circle, _token, _amount, _interval);

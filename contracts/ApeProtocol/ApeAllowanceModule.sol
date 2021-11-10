@@ -4,7 +4,7 @@ abstract contract ApeAllowanceModule {
 
 	struct Allowance {
 		uint256 maxAmount;
-		uint256 maxInterval;
+		uint256 cooldownInterval;
 	}
 
 	struct CurrentAllowance {
@@ -27,7 +27,7 @@ abstract contract ApeAllowanceModule {
 	 * @param _circle Circle ID receiving the allowance
 	 * @param _token Address of token to allocate
 	 * @param _amount Amount to take out at most
-	 * @param _interval Duration of an epoch in seconds
+	 * @param _cooldownInterval Duration of an epoch in seconds
 	 * @param _epochs Amount of epochs to fund. Expected_funded_epochs = _epochs + 1
 	 * @param _intervalStart Unix timestamp fromw hich epoch starts (block.timestamp if 0)
 	 */
@@ -35,21 +35,25 @@ abstract contract ApeAllowanceModule {
 		bytes32 _circle,
 		address _token,
 		uint256 _amount,
-		uint256 _interval,
+		uint256 _cooldownInterval,
 		uint256 _epochs,
-		uint256 _intervalStart
+		uint256 _intervalStart,
+		bool _instantFund
 		) external {
+		uint256 _now = block.timestamp;
+		if (_intervalStart == 0)
+			_intervalStart = _now;
+		require(_instantFund || _intervalStart >= _now, "Interval start in the past");
 		allowances[msg.sender][_circle][_token] = Allowance({
 			maxAmount: _amount,
-			maxInterval: _interval
+			cooldownInterval: _cooldownInterval
 		});
-
 		currentAllowances[msg.sender][_circle][_token] = CurrentAllowance({
 			debt: 0,
-			intervalStart: _intervalStart == 0 ? block.timestamp : _intervalStart,
+			intervalStart: _instantFund ? _now - _cooldownInterval : _intervalStart,
 			epochs: _epochs
 		});
-		emit AllowanceUpdated(msg.sender, _circle, _token, _amount, _interval);
+		emit AllowanceUpdated(msg.sender, _circle, _token, _amount, _cooldownInterval);
 	}
 
 	/**  
@@ -68,19 +72,20 @@ abstract contract ApeAllowanceModule {
 		) internal {
 		Allowance memory allowance = allowances[_vault][_circle][_token];
 		CurrentAllowance storage currentAllowance = currentAllowances[_vault][_circle][_token];
+		require(_amount <= allowance.maxAmount, "Amount tapped exceed max allowance");
+		require(block.timestamp >= currentAllowance.intervalStart, "Epoch has not started");
 
-		_updateInterval(currentAllowance, allowance);
-		require(currentAllowance.debt + _amount <= allowance.maxAmount, "Circle does not have sufficient allowance");
+		if (currentAllowance.debt + _amount > allowance.maxAmount)
+			_updateInterval(currentAllowance, allowance);
 		currentAllowance.debt += _amount;
 	}
 
 	function _updateInterval(CurrentAllowance storage _currentAllowance, Allowance memory _allowance) internal {
 		uint256 elapsedTime = block.timestamp - _currentAllowance.intervalStart;
-		if (elapsedTime > _allowance.maxInterval) {
-			require(_currentAllowance.epochs > 0, "Circle cannot tap anymore");
-			_currentAllowance.debt = 0;
-			_currentAllowance.intervalStart += _allowance.maxInterval * (elapsedTime / _allowance.maxInterval);
-			_currentAllowance.epochs--;
-		}
+		require(elapsedTime > _allowance.cooldownInterval, "Cooldown interval not finished");
+		require(_currentAllowance.epochs > 0, "Circle cannot tap anymore");
+		_currentAllowance.debt = 0;
+		_currentAllowance.intervalStart = block.timestamp;
+		_currentAllowance.epochs--;
 	}
 }

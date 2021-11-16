@@ -18,12 +18,9 @@ contract ApeVaultWrapper is BaseWrapper, Ownable {
 	
 	IERC20 public simpleToken;
 
-	mapping(address => bool) public hasAccess;
-
 	uint256 public underlyingValue;
 	address public apeRegistry;
 	VaultAPI public vault;
-	ApeAllowanceModule public allowanceModule;
 
 	constructor(
 		address _apeRegistry,

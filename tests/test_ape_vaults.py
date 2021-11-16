@@ -27,7 +27,7 @@ def test_vault_creation(ape_reg, ape_fee, ape_distro, ape_router, ape_factory, b
     ape_vault = ApeVaultWrapper.at(tx.new_contracts[0])
     assert ape_vault.owner() == user
     assert ape_vault.token() == usdc
-    usdc_vault = '0x5f18C75AbDAe578b483E5F43f12a39cF75b973a9'
+    usdc_vault = '0xa354F35829Ae975e850e23e9615b11Da1B3dC4DE'
     assert ape_vault.vault() == usdc_vault
 
 def test_router(ape_reg, ape_fee, ape_distro, ape_router, ape_factory, big_usdc, usdc, ApeVaultWrapper, minter, interface):
@@ -40,7 +40,7 @@ def test_router(ape_reg, ape_fee, ape_distro, ape_router, ape_factory, big_usdc,
     ape_vault = ApeVaultWrapper.at(tx.new_contracts[0])
     assert ape_vault.owner() == user
     assert ape_vault.token() == usdc
-    usdc_vault = interface.IERC20('0x5f18C75AbDAe578b483E5F43f12a39cF75b973a9')
+    usdc_vault = interface.IERC20('0xa354F35829Ae975e850e23e9615b11Da1B3dC4DE')
     assert ape_vault.vault() == usdc_vault
     with reverts('ApeRouter: Vault does not exist'):
         ape_router.delegateDeposit(usdc, usdc, amount, {'from':user})
@@ -61,7 +61,7 @@ def test_vault_exit(ape_reg, ape_fee, ape_distro, ape_router, ape_factory, big_u
     usdc.approve(ape_router, 2 ** 256 -1, {'from':user})
     tx = ape_factory.createApeVault(usdc, '0x0000000000000000000000000000000000000000', {'from':user})
     ape_vault = ApeVaultWrapper.at(tx.new_contracts[0])
-    usdc_vault = interface.IERC20('0x5f18C75AbDAe578b483E5F43f12a39cF75b973a9')
+    usdc_vault = interface.IERC20('0xa354F35829Ae975e850e23e9615b11Da1B3dC4DE')
     ape_router.delegateDeposit(ape_vault, usdc, amount, {'from':user})
     yv_bal = usdc_vault.balanceOf(ape_vault)
     ape_vault.exitVaultToken(False, {'from':user})
@@ -75,7 +75,7 @@ def test_vault_exit_underlying(ape_reg, ape_fee, ape_distro, ape_router, ape_fac
     usdc.approve(ape_router, 2 ** 256 -1, {'from':user})
     tx = ape_factory.createApeVault(usdc, '0x0000000000000000000000000000000000000000', {'from':user})
     ape_vault = ApeVaultWrapper.at(tx.new_contracts[0])
-    usdc_vault = interface.IERC20('0x5f18C75AbDAe578b483E5F43f12a39cF75b973a9')
+    usdc_vault = interface.IERC20('0xa354F35829Ae975e850e23e9615b11Da1B3dC4DE')
     ape_router.delegateDeposit(ape_vault, usdc, amount, {'from':user})
     yv_bal = usdc_vault.balanceOf(ape_vault)
     ape_vault.exitVaultToken(True, {'from':user})
@@ -90,7 +90,7 @@ def test_vault_withdraw_underlying(ape_reg, ape_fee, ape_distro, ape_router, ape
     usdc.approve(ape_router, 2 ** 256 -1, {'from':user})
     tx = ape_factory.createApeVault(usdc, '0x0000000000000000000000000000000000000000', {'from':user})
     ape_vault = ApeVaultWrapper.at(tx.new_contracts[0])
-    usdc_vault = interface.IERC20('0x5f18C75AbDAe578b483E5F43f12a39cF75b973a9')
+    usdc_vault = interface.IERC20('0xa354F35829Ae975e850e23e9615b11Da1B3dC4DE')
     ape_router.delegateDeposit(ape_vault, usdc, amount, {'from':user})
     yv_bal = usdc_vault.balanceOf(ape_vault)
     expected = 200_000_000_000
@@ -105,7 +105,7 @@ def test_vault_withdraw(ape_reg, ape_fee, ape_distro, ape_router, ape_factory, b
     usdc.approve(ape_router, 2 ** 256 -1, {'from':user})
     tx = ape_factory.createApeVault(usdc, '0x0000000000000000000000000000000000000000', {'from':user})
     ape_vault = ApeVaultWrapper.at(tx.new_contracts[0])
-    usdc_vault = interface.IERC20('0x5f18C75AbDAe578b483E5F43f12a39cF75b973a9')
+    usdc_vault = interface.IERC20('0xa354F35829Ae975e850e23e9615b11Da1B3dC4DE')
     ape_router.delegateDeposit(ape_vault, usdc, amount, {'from':user})
     yv_bal = usdc_vault.balanceOf(ape_vault)
     expected = 200_000_000_000
@@ -125,7 +125,7 @@ def test_circle_allowance(ape_reg, ape_fee, ape_distro, ape_router, ape_factory,
     epochs = 4
     tx = ape_factory.createApeVault(usdc, '0x0000000000000000000000000000000000000000', {'from':user})
     ape_vault = ApeVaultWrapper.at(tx.new_contracts[0])
-    ape_vault.updateAllowance(circle, usdc, 20_000_000_000, interval, epochs, {'from':user})
+    ape_vault.updateAllowance(circle, usdc, 20_000_000_000, interval, epochs, 0,{'from':user})
     (debt, intervalStart, epochs) = ape_distro.currentAllowances(ape_vault, circle, token)
     assert ape_distro.allowances(ape_vault, circle, token) == (amount, interval)
     assert debt == 0 and epochs == 4

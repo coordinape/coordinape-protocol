@@ -24,6 +24,7 @@ contract ApeRouter is TimeLock {
 	event DepositInVault(address indexed vault, address token, uint256 amount);
 	event WithdrawFromVault(address indexed vault, address token, uint256 amount);
 
+	// TODO Add support of yv tokens
 	function delegateDeposit(address _apeVault, address _token, uint256 _amount) external returns(uint256 deposited) {
 		VaultAPI vault = VaultAPI(RegistryAPI(yearnRegistry).latestVault(_token));
 		require(address(vault) != address(0), "ApeRouter: No vault for token");

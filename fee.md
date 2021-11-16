@@ -176,3 +176,51 @@ if yield size is:
 - 80+% => 0% fee 
 
 the curve drop aggressively making it a lot more advantageous to go full yield
+
+
+
+
+Four different approaches on to how the ape vault system should be implemented in prod:
+
+- Immutable proxy => 
+	Instead of deploying the ape vault bytecode at each creation, deploy the code once and create a proxy contract that would delegate call to the implementation
+
+	pros:
+		- Cheaper vault creation
+		- Simplest implementation 
+	cons:
+		- Vault upgrades would be require a new vault creation and fund migration
+
+<!-- - Mutable proxy =>
+	Similar to immutable proxy, deploy a proxy that points to an ape vault implementation
+	pros:
+		- Allows user to upgrade the implementation whenever they want
+		- Cheap vault upgrades UX side
+		- Allows user to create custom vault implementations
+	cons:
+		- User could add a wrong or bugged implementation
+		- Customg implementations may not be supported by protocol
+		- Requires user interaction with technical calls -->
+
+- Beacon proxy
+	immutable proxy that delegates call to a beacon which points to the vault implementation
+	pros:
+		- Upgrades all proxies at once
+		- No user cost
+	cons:
+		- At the mercy of coordinape, a wrong implementation could lead to catastrophic failures/losses
+		- Coordinape rug?
+	thoughts:
+		Could implement a timelock when upgrade implementation but means if new implementation is bugged, need to wait a long period of time
+
+- Registry beacon proxy
+	Store in the beacon a list of vault implementation that we are ok supporting. New users use the latest implementation by default. Newer users can change implementation if they desire
+	pros:
+		- Upgrades all proxies at once
+		- Lets users upgrade whenever they want to an implementation we support
+	cons: 
+		- No custom implementation like in mutable proxy
+
+	Lawrence's suggestion:
+		- opt out of auto upgrading
+		- if opt out, users upgrades themselves by choosing a specific implementation

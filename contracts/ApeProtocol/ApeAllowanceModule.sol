@@ -37,20 +37,19 @@ abstract contract ApeAllowanceModule {
 		uint256 _amount,
 		uint256 _cooldownInterval,
 		uint256 _epochs,
-		uint256 _intervalStart,
-		bool _instantFund
+		uint256 _intervalStart
 		) external {
 		uint256 _now = block.timestamp;
 		if (_intervalStart == 0)
 			_intervalStart = _now;
-		require(_instantFund || _intervalStart >= _now, "Interval start in the past");
+		require(_intervalStart >= _now, "Interval start in the past");
 		allowances[msg.sender][_circle][_token] = Allowance({
 			maxAmount: _amount,
 			cooldownInterval: _cooldownInterval
 		});
 		currentAllowances[msg.sender][_circle][_token] = CurrentAllowance({
 			debt: 0,
-			intervalStart: _instantFund ? _now - _cooldownInterval : _intervalStart,
+			intervalStart: _intervalStart,
 			epochs: _epochs
 		});
 		emit AllowanceUpdated(msg.sender, _circle, _token, _amount, _cooldownInterval);

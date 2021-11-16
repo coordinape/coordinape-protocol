@@ -45,7 +45,7 @@ def test_tap_profit(mock_ape_reg, mock_ape_fee, mock_ape_distro, mock_ape_router
     interval = 60 * 60 * 14 # 14 days
     epochs = 0
     root = '0x1838e0c6251730868cce6768e2062af0e72f79409a1f7011351bd2c1535e2a5c'
-    ape_vault.updateAllowance(circle, token, grant, interval, epochs, {'from':user})
+    ape_vault.updateAllowance(circle, token, grant, interval, epochs, 0,{'from':user})
     admin = accounts[1]
     ape_vault.approveCircleAdmin(circle, admin, {'from':user})
     with reverts('Not enough profit to cover epoch'):
@@ -79,7 +79,7 @@ def test_expected_profit_revert(mock_ape_reg, mock_ape_fee, mock_ape_distro, moc
     interval = 60 * 60 * 14 # 14 days
     epochs = 0
     root = '0x1838e0c6251730868cce6768e2062af0e72f79409a1f7011351bd2c1535e2a5c'
-    ape_vault.updateAllowance(circle, token, grant, interval, epochs, {'from':user})
+    ape_vault.updateAllowance(circle, token, grant, interval, epochs, 0,{'from':user})
     admin = accounts[1]
     ape_vault.approveCircleAdmin(circle, admin, {'from':user})
     with reverts('Not enough profit to cover epoch'):
@@ -114,7 +114,7 @@ def test_bad_harvest_reset_value(mock_ape_reg, mock_ape_fee, mock_ape_distro, mo
     interval = 60 * 60 * 14 # 14 days
     epochs = 1
     root = '0x1838e0c6251730868cce6768e2062af0e72f79409a1f7011351bd2c1535e2a5c'
-    ape_vault.updateAllowance(circle, token, grant, interval, epochs, {'from':user})
+    ape_vault.updateAllowance(circle, token, grant, interval, epochs, 0,{'from':user})
     admin = accounts[1]
     ape_vault.approveCircleAdmin(circle, admin, {'from':user})
     with reverts('Not enough profit to cover epoch'):

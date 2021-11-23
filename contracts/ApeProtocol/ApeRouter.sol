@@ -24,6 +24,20 @@ contract ApeRouter is TimeLock {
 	event DepositInVault(address indexed vault, address token, uint256 amount);
 	event WithdrawFromVault(address indexed vault, address token, uint256 amount);
 
+
+	function delegateDepositYvTokens(address _apeVault, address _yvToken, address _token, uint256 _amount) external returns(uint256 deposited) {
+		VaultAPI vault = VaultAPI(RegistryAPI(yearnRegistry).latestVault(_token));
+		require(address(vault) != address(0), "ApeRouter: No vault for token");
+		require(address(vault) == _yvToken, "ApeRouter: yvTokens don't match");
+		require(ApeVaultFactory(apeVaultFactory).vaultRegistry(_apeVault), "ApeRouter: Vault does not exist");
+		require(address(vault) == address(ApeVaultWrapper(_apeVault).vault()), "ApeRouter: yearn Vault not identical");
+
+		IERC20(_yvToken).safeTransferFrom(msg.sender, _apeVault, _amount);
+		deposited = vault.pricePerShare() * _amount / (10**uint256(vault.decimals()));
+		ApeVaultWrapper(_apeVault).addFunds(deposited);
+		emit DepositInVault(_apeVault, _token, _amount);
+
+	}
 	// TODO Add support of yv tokens
 	function delegateDeposit(address _apeVault, address _token, uint256 _amount) external returns(uint256 deposited) {
 		VaultAPI vault = VaultAPI(RegistryAPI(yearnRegistry).latestVault(_token));

@@ -92,8 +92,10 @@ contract ApeVaultWrapperImplementation is BaseWrapperImplementation, OwnableImpl
 		address _apeRegistry,
 		address _token,
 		address _registry,
-		address _simpleToken) external {
+		address _simpleToken,
+		address _newOwner) external {
 		require(!setup);
+		setup = true;
 		apeRegistry = _apeRegistry;
 		if (_token != address(0))
 			vault = VaultAPI(RegistryAPI(_registry).latestVault(_token));
@@ -103,8 +105,8 @@ contract ApeVaultWrapperImplementation is BaseWrapperImplementation, OwnableImpl
         token = IERC20(_token);
         // Recommended to use `v2.registry.ychad.eth`
         registry = RegistryAPI(_registry);
-		_owner = msg.sender;
-        emit OwnershipTransferred(address(0), msg.sender);
+		_owner = _newOwner;
+        emit OwnershipTransferred(address(0), _newOwner);
 	}
 
 	event ApeVaultFundWithdrawal(address indexed apeVault, address vault, uint256 _amount, bool underlying);

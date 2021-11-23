@@ -50,12 +50,24 @@ def beacon(ApeUgradeableBeacon, minter, implementation):
     return ApeUgradeableBeacon.deploy(implementation, 0, {'from':minter})
 
 @pytest.fixture()
+def registry_beacon(ApeRegistryBeacon, minter, implementation):
+    return ApeRegistryBeacon.deploy(implementation, 0, {'from':minter})
+
+@pytest.fixture()
 def ape_factory_beacon(ApeVaultFactoryBeacon, ape_reg, yearn_reg, minter, beacon):
     return ApeVaultFactoryBeacon.deploy(yearn_reg, ape_reg, beacon, {'from':minter})
 
 @pytest.fixture()
+def ape_factory_registry_beacon(ApeVaultFactoryBeacon, ape_reg, yearn_reg, minter, registry_beacon):
+    return ApeVaultFactoryBeacon.deploy(yearn_reg, ape_reg, registry_beacon, {'from':minter})
+
+@pytest.fixture()
 def ape_router_beacon(ApeRouter, yearn_reg, ape_factory_beacon, minter):
     return ApeRouter.deploy(yearn_reg, ape_factory_beacon, 0, {'from':minter})
+
+@pytest.fixture()
+def ape_router_registry_beacon(ApeRouter, yearn_reg, ape_factory_registry_beacon, minter):
+    return ApeRouter.deploy(yearn_reg, ape_factory_registry_beacon, 0, {'from':minter})
 
 @pytest.fixture()
 def mock_yearn_reg(MockRegistry, minter):
@@ -84,3 +96,24 @@ def mock_ape_distro(ApeDistributor, minter):
 @pytest.fixture()
 def mock_ape_fee(FeeRegistry, minter):
     return FeeRegistry.deploy({'from':minter})
+
+
+@pytest.fixture()
+def implementation1(ApeVaultWrapperImplementation1, minter):
+    return ApeVaultWrapperImplementation1.deploy({'from':minter})
+
+@pytest.fixture()
+def implementation2(ApeVaultWrapperImplementation2, minter):
+    return ApeVaultWrapperImplementation2.deploy({'from':minter})
+
+@pytest.fixture()
+def implementation3(ApeVaultWrapperImplementation3, minter):
+    return ApeVaultWrapperImplementation3.deploy({'from':minter})
+
+@pytest.fixture()
+def mock_registry_beacon(ApeRegistryBeacon, minter, implementation1):
+    return ApeRegistryBeacon.deploy(implementation1, 0, {'from':minter})
+
+@pytest.fixture()
+def mock_factory_registry_beacon(MockVaultFactoryBeacon, ape_reg, yearn_reg, minter, mock_registry_beacon):
+    return MockVaultFactoryBeacon.deploy(yearn_reg, ape_reg, mock_registry_beacon, {'from':minter})

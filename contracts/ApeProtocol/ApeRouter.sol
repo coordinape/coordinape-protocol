@@ -1,8 +1,8 @@
 pragma solidity ^0.8.2;
 
-import {VaultAPI, BaseWrapper, RegistryAPI} from "./wrapper/BaseWrapper.sol";
-import {ApeVaultFactory} from "./wrapper/ApeVaultFactory.sol";
-import {ApeVaultWrapper} from "./wrapper/ApeVault.sol";
+import {VaultAPI, BaseWrapperImplementation, RegistryAPI} from "./wrapper/beacon/BaseWrapperImplementation.sol";
+import {ApeVaultFactoryBeacon} from "./wrapper/beacon/ApeVaultFactory.sol";
+import {ApeVaultWrapperImplementation} from "./wrapper/beacon/ApeVault.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./TimeLock.sol";
@@ -24,12 +24,26 @@ contract ApeRouter is TimeLock {
 	event DepositInVault(address indexed vault, address token, uint256 amount);
 	event WithdrawFromVault(address indexed vault, address token, uint256 amount);
 
-	// TODO Add support of yv tokens
+
+	function delegateDepositYvTokens(address _apeVault, address _yvToken, address _token, uint256 _amount) external returns(uint256 deposited) {
+		VaultAPI vault = VaultAPI(RegistryAPI(yearnRegistry).latestVault(_token));
+		require(address(vault) != address(0), "ApeRouter: No vault for token");
+		require(address(vault) == _yvToken, "ApeRouter: yvTokens don't match");
+		require(ApeVaultFactoryBeacon(apeVaultFactory).vaultRegistry(_apeVault), "ApeRouter: Vault does not exist");
+		require(address(vault) == address(ApeVaultWrapperImplementation(_apeVault).vault()), "ApeRouter: yearn Vault not identical");
+
+		IERC20(_yvToken).safeTransferFrom(msg.sender, _apeVault, _amount);
+		deposited = vault.pricePerShare() * _amount / (10**uint256(vault.decimals()));
+		ApeVaultWrapperImplementation(_apeVault).addFunds(deposited);
+		emit DepositInVault(_apeVault, _token, _amount);
+
+	}
+
 	function delegateDeposit(address _apeVault, address _token, uint256 _amount) external returns(uint256 deposited) {
 		VaultAPI vault = VaultAPI(RegistryAPI(yearnRegistry).latestVault(_token));
 		require(address(vault) != address(0), "ApeRouter: No vault for token");
-		require(ApeVaultFactory(apeVaultFactory).vaultRegistry(_apeVault), "ApeRouter: Vault does not exist");
-		require(address(vault) == address(ApeVaultWrapper(_apeVault).vault()), "ApeRouter: yearn Vault not identical");
+		require(ApeVaultFactoryBeacon(apeVaultFactory).vaultRegistry(_apeVault), "ApeRouter: Vault does not exist");
+		require(address(vault) == address(ApeVaultWrapperImplementation(_apeVault).vault()), "ApeRouter: yearn Vault not identical");
 
         IERC20(_token).safeTransferFrom(msg.sender, address(this), _amount);
 
@@ -46,15 +60,15 @@ contract ApeRouter is TimeLock {
         deposited = beforeBal - afterBal;
 
 
-		ApeVaultWrapper(_apeVault).addFunds(deposited);
+		ApeVaultWrapperImplementation(_apeVault).addFunds(deposited);
 		emit DepositInVault(_apeVault, _token, sharesMinted);
 	}
 
 	function delegateWithdrawal(address _recipient, address _apeVault, address _token, uint256 _shareAmount, bool _underlying) external{
 		VaultAPI vault = VaultAPI(RegistryAPI(yearnRegistry).latestVault(_token));
 		require(address(vault) != address(0), "ApeRouter: No vault for token");
-		require(ApeVaultFactory(apeVaultFactory).vaultRegistry(msg.sender), "ApeRouter: Vault does not exist");
-		require(address(vault) == address(ApeVaultWrapper(_apeVault).vault()), "ApeRouter: yearn Vault not identical");
+		require(ApeVaultFactoryBeacon(apeVaultFactory).vaultRegistry(msg.sender), "ApeRouter: Vault does not exist");
+		require(address(vault) == address(ApeVaultWrapperImplementation(_apeVault).vault()), "ApeRouter: yearn Vault not identical");
 
 		if (_underlying)
 			vault.withdraw(_shareAmount, _recipient);

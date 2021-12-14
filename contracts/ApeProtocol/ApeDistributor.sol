@@ -4,9 +4,9 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol"; 
-import "./wrapper/ApeVault.sol";
+import "./wrapper/beacon/ApeVault.sol";
 import "./ApeAllowanceModule.sol";
-import {VaultAPI} from "./wrapper/BaseWrapper.sol";
+import {VaultAPI} from "./wrapper/beacon/BaseWrapperImplementation.sol";
 
 contract ApeDistributor is ApeAllowanceModule {
 	using MerkleProof for bytes32[];
@@ -56,8 +56,8 @@ contract ApeDistributor is ApeAllowanceModule {
 		uint256 _amount,
 		uint8 _tapType)
 		external {
-		require(vaultApprovals[_vault][_circle] == msg.sender || ApeVaultWrapper(_vault).owner() == msg.sender, "Sender cannot upload a root");
-		require(address(ApeVaultWrapper(_vault).vault()) == _token, "Vault cannot supply token");
+		require(vaultApprovals[_vault][_circle] == msg.sender || ApeVaultWrapperImplementation(_vault).owner() == msg.sender, "Sender cannot upload a root");
+		require(address(ApeVaultWrapperImplementation(_vault).vault()) == _token, "Vault cannot supply token");
 		_isTapAllowed(_vault, _circle, _token, _amount);
 		uint256 epoch = epochTracking[_circle][_token];
 		epochRoots[_circle][_token][epoch] = _root;
@@ -65,11 +65,11 @@ contract ApeDistributor is ApeAllowanceModule {
 		epochTracking[_circle][_token]++;
 		circleAlloc[_circle][_token] += _amount;
 		uint256 beforeBal = IERC20(_token).balanceOf(address(this));
-		uint256 sharesRemoved = ApeVaultWrapper(_vault).tap(_amount, _tapType);
+		uint256 sharesRemoved = ApeVaultWrapperImplementation(_vault).tap(_amount, _tapType);
 		uint256 afterBal = IERC20(_token).balanceOf(address(this));
 		require(afterBal - beforeBal == _amount, "Did not receive correct amount of tokens");
 		if (sharesRemoved > 0)
-			emit apeVaultFundsTapped(_vault, address(ApeVaultWrapper(_vault).vault()), sharesRemoved);
+			emit apeVaultFundsTapped(_vault, address(ApeVaultWrapperImplementation(_vault).vault()), sharesRemoved);
 	}
 
 	/**  

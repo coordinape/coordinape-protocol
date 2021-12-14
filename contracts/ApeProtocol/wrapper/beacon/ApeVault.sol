@@ -15,15 +15,6 @@ abstract contract OwnableImplementation {
     event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
 
     /**
-     * @dev Initializes the contract setting the deployer as the initial owner.
-     */
-    // constructor () {
-    //     address msgSender = _msgSender();
-    //     _owner = msgSender;
-    //     emit OwnershipTransferred(address(0), msgSender);
-    // }
-
-    /**
      * @dev Returns the address of the current owner.
      */
     function owner() public view virtual returns (address) {
@@ -77,23 +68,14 @@ contract ApeVaultWrapperImplementation is BaseWrapperImplementation, OwnableImpl
 	VaultAPI public vault;
 	ApeAllowanceModule public allowanceModule;
 
-	// constructor(
-	// 	address _apeRegistry,
-	//     address _token,
-    //     address _registry,
-	// 	address _simpleToken) BaseWrapper(_token, _registry) {
-	// 	apeRegistry = _apeRegistry;
-	// 	if (_token != address(0))
-	// 		vault = VaultAPI(RegistryAPI(_registry).latestVault(_token));
-	// 	simpleToken = IERC20(_simpleToken);
-	// }
-
 	function init(
 		address _apeRegistry,
 		address _token,
 		address _registry,
-		address _simpleToken) external {
+		address _simpleToken,
+		address _newOwner) external {
 		require(!setup);
+		setup = true;
 		apeRegistry = _apeRegistry;
 		if (_token != address(0))
 			vault = VaultAPI(RegistryAPI(_registry).latestVault(_token));
@@ -103,8 +85,8 @@ contract ApeVaultWrapperImplementation is BaseWrapperImplementation, OwnableImpl
         token = IERC20(_token);
         // Recommended to use `v2.registry.ychad.eth`
         registry = RegistryAPI(_registry);
-		_owner = msg.sender;
-        emit OwnershipTransferred(address(0), msg.sender);
+		_owner = _newOwner;
+        emit OwnershipTransferred(address(0), _newOwner);
 	}
 
 	event ApeVaultFundWithdrawal(address indexed apeVault, address vault, uint256 _amount, bool underlying);

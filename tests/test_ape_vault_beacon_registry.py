@@ -137,9 +137,9 @@ def test_vault_circle_admin(ape_reg, ape_fee, ape_distro, ape_router_registry_be
     tx = ape_factory_registry_beacon.createApeVault(usdc, '0x0000000000000000000000000000000000000000', {'from':user})
     ape_vault = ApeVaultWrapperImplementation.at(tx.new_contracts[0])
     circle = '0x1'
-    ape_vault.approveCircleAdmin(circle, user, {'from':user})
+    ape_vault.updateCircleAdmin(circle, user, {'from':user})
     assert ape_distro.vaultApprovals(ape_vault, circle) == user
-    ape_vault.approveCircleAdmin(circle, ape_vault, {'from':user})
+    ape_vault.updateCircleAdmin(circle, ape_vault, {'from':user})
     assert ape_distro.vaultApprovals(ape_vault, circle) == ape_vault
 
 def test_tap_revert(ape_reg, ape_fee, ape_distro, ape_router_registry_beacon, ape_factory_registry_beacon, big_usdc, usdc, ApeVaultWrapperImplementation, minter, interface):

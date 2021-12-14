@@ -170,13 +170,6 @@ abstract contract BaseWrapperImplementation {
     // VaultsAPI.depositLimit is unlimited
     uint256 constant UNCAPPED_DEPOSITS = type(uint256).max;
 
-    // constructor(address _token, address _registry) {
-    //     // Recommended to use a token with a `Registry.latestVault(_token) != address(0)`
-    //     token = IERC20(_token);
-    //     // Recommended to use `v2.registry.ychad.eth`
-    //     registry = RegistryAPI(_registry);
-    // }
-
     /**
      * @notice
      *  Used to update the yearn registry.

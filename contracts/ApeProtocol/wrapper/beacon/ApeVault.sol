@@ -15,15 +15,6 @@ abstract contract OwnableImplementation {
     event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
 
     /**
-     * @dev Initializes the contract setting the deployer as the initial owner.
-     */
-    // constructor () {
-    //     address msgSender = _msgSender();
-    //     _owner = msgSender;
-    //     emit OwnershipTransferred(address(0), msgSender);
-    // }
-
-    /**
      * @dev Returns the address of the current owner.
      */
     function owner() public view virtual returns (address) {
@@ -76,17 +67,6 @@ contract ApeVaultWrapperImplementation is BaseWrapperImplementation, OwnableImpl
 	address public apeRegistry;
 	VaultAPI public vault;
 	ApeAllowanceModule public allowanceModule;
-
-	// constructor(
-	// 	address _apeRegistry,
-	//     address _token,
-    //     address _registry,
-	// 	address _simpleToken) BaseWrapper(_token, _registry) {
-	// 	apeRegistry = _apeRegistry;
-	// 	if (_token != address(0))
-	// 		vault = VaultAPI(RegistryAPI(_registry).latestVault(_token));
-	// 	simpleToken = IERC20(_simpleToken);
-	// }
 
 	function init(
 		address _apeRegistry,

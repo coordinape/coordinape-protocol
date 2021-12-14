@@ -1,9 +1,9 @@
 pragma solidity ^0.8.2;
 
-import "./ApeVault.sol";
-import "./ApeBeacon.sol";
+import "./MockVault.sol";
+import "../ApeBeacon.sol";
 
-contract ApeVaultFactoryBeacon {
+contract MockVaultFactoryBeacon {
 	mapping(address => bool) public vaultRegistry;
 
 	address public yearnRegistry;
@@ -18,8 +18,8 @@ contract ApeVaultFactoryBeacon {
 		beacon = _beacon;
 	}
 
-	function createApeVault(address _token, address _simpleToken) external {
-		bytes memory data = abi.encodeWithSignature("init(address,address,address,address,address)", apeRegistry, _token, yearnRegistry, _simpleToken, msg.sender);
+	function createApeVault() external {
+		bytes memory data = abi.encodeWithSignature("init()");
 		ApeBeacon proxy = new ApeBeacon(beacon, msg.sender, data);
 		vaultRegistry[address(proxy)] = true;
 		emit VaultCreated(address(proxy));

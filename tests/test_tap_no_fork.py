@@ -47,7 +47,7 @@ def test_tap_profit(mock_ape_reg, mock_ape_fee, mock_ape_distro, mock_ape_router
     root = '0x1838e0c6251730868cce6768e2062af0e72f79409a1f7011351bd2c1535e2a5c'
     ape_vault.updateAllowance(circle, token, grant, interval, epochs, 0,{'from':user})
     admin = accounts[1]
-    ape_vault.approveCircleAdmin(circle, admin, {'from':user})
+    ape_vault.updateCircleAdmin(circle, admin, {'from':user})
     with reverts('Not enough profit to cover epoch'):
         mock_ape_distro.uploadEpochRoot(ape_vault, circle, token, root, grant, TAP_PROFIT, {'from': admin})
     share_total = vault.balanceOf(ape_vault)
@@ -81,7 +81,7 @@ def test_expected_profit_revert(mock_ape_reg, mock_ape_fee, mock_ape_distro, moc
     root = '0x1838e0c6251730868cce6768e2062af0e72f79409a1f7011351bd2c1535e2a5c'
     ape_vault.updateAllowance(circle, token, grant, interval, epochs, 0,{'from':user})
     admin = accounts[1]
-    ape_vault.approveCircleAdmin(circle, admin, {'from':user})
+    ape_vault.updateCircleAdmin(circle, admin, {'from':user})
     with reverts('Not enough profit to cover epoch'):
         mock_ape_distro.uploadEpochRoot(ape_vault, circle, token, root, grant // 100, TAP_PROFIT, {'from': admin})
     print(vault.pricePerShare())
@@ -116,7 +116,7 @@ def test_bad_harvest_reset_value(mock_ape_reg, mock_ape_fee, mock_ape_distro, mo
     root = '0x1838e0c6251730868cce6768e2062af0e72f79409a1f7011351bd2c1535e2a5c'
     ape_vault.updateAllowance(circle, token, grant, interval, epochs, 0,{'from':user})
     admin = accounts[1]
-    ape_vault.approveCircleAdmin(circle, admin, {'from':user})
+    ape_vault.updateCircleAdmin(circle, admin, {'from':user})
     with reverts('Not enough profit to cover epoch'):
         mock_ape_distro.uploadEpochRoot(ape_vault, circle, token, root, grant // 10, TAP_PROFIT, {'from': admin})
     vault.goodHarvest(100, {'from':user})

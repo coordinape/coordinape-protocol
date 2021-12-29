@@ -57,9 +57,11 @@ contract ApeDistributor is ApeAllowanceModule {
 		uint256 _amount,
 		uint8 _tapType)
 		external {
-		require(vaultApprovals[_vault][_circle] == msg.sender || ApeVaultWrapperImplementation(_vault).owner() == msg.sender, "Sender cannot upload a root");
+		bool isOwner = ApeVaultWrapperImplementation(_vault).owner() == msg.sender;
+		require(vaultApprovals[_vault][_circle] == msg.sender || isOwner, "Sender cannot upload a root");
 		require(address(ApeVaultWrapperImplementation(_vault).vault()) == _token, "Vault cannot supply token");
-		_isTapAllowed(_vault, _circle, _token, _amount);
+		if (!isOwner)
+			_isTapAllowed(_vault, _circle, _token, _amount);
 		uint256 epoch = epochTracking[_circle][_token];
 		epochRoots[_circle][_token][epoch] = _root;
 

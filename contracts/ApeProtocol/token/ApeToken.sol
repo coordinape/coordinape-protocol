@@ -7,6 +7,7 @@ import "./TokenAccessControl.sol";
 
 contract ApeToken is ERC20("coordinape.com", "APE"), TokenAccessControl {
 	uint256 immutable private _cap = 1_000_000_000 ether;
+    string private mutableSymbol;
 
 	bytes32 private immutable _PERMIT_TYPEHASH = keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)");
 	bytes32 public DOMAIN_SEPARATOR;
@@ -14,7 +15,7 @@ contract ApeToken is ERC20("coordinape.com", "APE"), TokenAccessControl {
 	mapping(address => uint256) public nonces;
 
 	constructor() {
-
+        mutableSymbol = "COOP";
 		uint chainId = block.chainid;
         DOMAIN_SEPARATOR = keccak256(
             abi.encode(
@@ -26,6 +27,14 @@ contract ApeToken is ERC20("coordinape.com", "APE"), TokenAccessControl {
             )
         );
 	}
+
+    function updateSymbol(string calldata _sym) external onlyOwner {
+        mutableSymbol = _sym;
+    }
+
+    function symbol() public view override returns (string memory) {
+        return mutableSymbol;
+    }
 
 	function cap() public view virtual returns (uint256) {
         return _cap;

@@ -46,20 +46,17 @@ contract ApeRouter is TimeLock {
 		require(ApeVaultFactoryBeacon(apeVaultFactory).vaultRegistry(_apeVault), "ApeRouter: Vault does not exist");
 		require(address(vault) == address(ApeVaultWrapperImplementation(_apeVault).vault()), "ApeRouter: yearn Vault not identical");
 
-        IERC20(_token).safeTransferFrom(msg.sender, address(this), _amount);
+		IERC20(_token).safeTransferFrom(msg.sender, address(this), _amount);
 
 		if (IERC20(_token).allowance(address(this), address(vault)) < _amount) {
-            IERC20(_token).safeApprove(address(vault), 0); // Avoid issues with some IERC20(_token)s requiring 0
-            IERC20(_token).safeApprove(address(vault), MAX_UINT); // Vaults are trusted
-        }
+			IERC20(_token).safeApprove(address(vault), 0); // Avoid issues with some IERC20(_token)s requiring 0
+			IERC20(_token).safeApprove(address(vault), MAX_UINT); // Vaults are trusted
+		}
 
 		uint256 beforeBal = IERC20(_token).balanceOf(address(this));
-        
 		uint256 sharesMinted = vault.deposit(_amount, _apeVault);
-
-        uint256 afterBal = IERC20(_token).balanceOf(address(this));
-        deposited = beforeBal - afterBal;
-
+		uint256 afterBal = IERC20(_token).balanceOf(address(this));
+		deposited = beforeBal - afterBal;
 
 		ApeVaultWrapperImplementation(_apeVault).addFunds(deposited);
 		emit DepositInVault(_apeVault, _token, sharesMinted);

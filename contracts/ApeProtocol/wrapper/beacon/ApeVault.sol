@@ -61,13 +61,10 @@ contract ApeVaultWrapperImplementation is BaseWrapperImplementation, OwnableImpl
 	
 	IERC20 public simpleToken;
 
-	mapping(address => bool) public hasAccess;
-
 	bool internal setup;
 	uint256 public underlyingValue;
 	address public apeRegistry;
 	VaultAPI public vault;
-	ApeAllowanceModule public allowanceModule;
 
 	function init(
 		address _apeRegistry,
@@ -76,6 +73,7 @@ contract ApeVaultWrapperImplementation is BaseWrapperImplementation, OwnableImpl
 		address _simpleToken,
 		address _newOwner) external {
 		require(!setup);
+		require(_token != address(0) || _simpleToken != address(0));
 		setup = true;
 		apeRegistry = _apeRegistry;
 		if (_token != address(0))
@@ -128,7 +126,7 @@ contract ApeVaultWrapperImplementation is BaseWrapperImplementation, OwnableImpl
 	 * Used to withdraw non yield bearing tokens
 	 * @param _amount Amount of simpleToken to withdraw
 	 */
-	function apeWithdrawSimpleToken(uint256 _amount) public {
+	function apeWithdrawSimpleToken(uint256 _amount) public onlyOwner {
 		simpleToken.safeTransfer(msg.sender, _amount);
 	}
 
@@ -144,7 +142,7 @@ contract ApeVaultWrapperImplementation is BaseWrapperImplementation, OwnableImpl
 
 		address router = ApeRegistry(apeRegistry).router();
 		underlyingValue -= underlyingAmount;
-		vault.transfer(router, _shareAmount);
+		vault.safeTransfer(router, _shareAmount);
 		ApeRouter(router).delegateWithdrawal(owner(), address(this), vault.token(), _shareAmount, _underlying);
 	}
 
@@ -157,7 +155,7 @@ contract ApeVaultWrapperImplementation is BaseWrapperImplementation, OwnableImpl
 		underlyingValue = 0;
 		uint256 totalShares = vault.balanceOf(address(this));
 		address router = ApeRegistry(apeRegistry).router();
-		vault.transfer(router, totalShares);
+		vault.safeTransfer(router, totalShares);
 		ApeRouter(router).delegateWithdrawal(owner(), address(this), vault.token(), totalShares, _underlying);
 	}
 
@@ -218,8 +216,8 @@ contract ApeVaultWrapperImplementation is BaseWrapperImplementation, OwnableImpl
 		uint256 finalTapValue = underlyingTapValue + underlyingTapValue * fee / TOTAL_SHARES;
 		if (finalTapValue > profit_)
 			underlyingValue -= finalTapValue - profit_;
-		vault.transfer(_recipient, _tapValue);
-		vault.transfer(ApeRegistry(apeRegistry).treasury(), _tapValue * fee / TOTAL_SHARES);
+		vault.safeTransfer(_recipient, _tapValue);
+		vault.safeTransfer(ApeRegistry(apeRegistry).treasury(), _tapValue * fee / TOTAL_SHARES);
 	}
 
 	/**  
@@ -230,8 +228,8 @@ contract ApeVaultWrapperImplementation is BaseWrapperImplementation, OwnableImpl
 	 */
 	function _tapSimpleToken(uint256 _tapValue, address _recipient) internal {
 		uint256 feeAmount = _tapValue * FeeRegistry(ApeRegistry(apeRegistry).feeRegistry()).staticFee() / TOTAL_SHARES;
-		simpleToken.transfer(_recipient, _tapValue);
-		simpleToken.transfer(ApeRegistry(apeRegistry).treasury(), feeAmount);
+		simpleToken.safeTransfer(_recipient, _tapValue);
+		simpleToken.safeTransfer(ApeRegistry(apeRegistry).treasury(), feeAmount);
 	}
 
 	/**  

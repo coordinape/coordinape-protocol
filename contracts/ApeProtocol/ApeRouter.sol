@@ -50,7 +50,7 @@ contract ApeRouter is TimeLock {
 
 		if (IERC20(_token).allowance(address(this), address(vault)) < _amount) {
             IERC20(_token).safeApprove(address(vault), 0); // Avoid issues with some IERC20(_token)s requiring 0
-            IERC20(_token).safeApprove(address(vault), MAX_UINT); // Vaults are trusted
+            IERC20(_token).safeApprove(address(vault), _amount); // Vaults are trusted
         }
 
 		uint256 beforeBal = IERC20(_token).balanceOf(address(this));

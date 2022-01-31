@@ -118,7 +118,7 @@ contract ApeDistributor is ApeAllowanceModule {
 		require(_proof.verify(epochRoots[_circle][_token][_epoch], node), "Wrong proof");
 		uint256 currentCheckpoint = checkpoints[_circle][_token][_account];
 		require(_checkpoint > currentCheckpoint, "Given checkpoint not higher than current checkpoint");
-		
+
 		uint256 claimable = _checkpoint - currentCheckpoint;
 		require(claimable <= circleAlloc[_circle][_token], "Can't claim more than circle has to give");
 		circleAlloc[_circle][_token] -= claimable;

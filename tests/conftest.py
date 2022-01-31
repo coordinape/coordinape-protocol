@@ -23,7 +23,7 @@ def yearn_reg():
 
 @pytest.fixture()
 def ape_reg(ApeRegistry, minter):
-    return ApeRegistry.deploy(0, {'from':minter})
+    return ApeRegistry.deploy( minter ,0, {'from':minter})
 
 @pytest.fixture()
 def ape_distro(ApeDistributor, minter):
@@ -59,7 +59,7 @@ def mock_yearn_vault_factories(MockVaultFactory, mock_yearn_reg, minter):
 
 @pytest.fixture()
 def mock_ape_reg(ApeRegistry, minter):
-    return ApeRegistry.deploy(0, {'from':minter})
+    return ApeRegistry.deploy(minter, 0, {'from':minter})
 
 @pytest.fixture()
 def mock_ape_factory_beacon(ApeVaultFactoryBeacon, mock_ape_reg, mock_yearn_reg, minter, registry_beacon):

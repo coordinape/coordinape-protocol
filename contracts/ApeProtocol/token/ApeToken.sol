@@ -68,10 +68,12 @@ contract ApeToken is ERC20("coordinape.com", "APE"), TokenAccessControl {
     }
 
     function transfer(address _to, uint256 _amount) public override notPaused returns(bool) {
+        require(_to != address(this));
         return ERC20.transfer(_to, _amount);
     }
 
     function transferFrom(address _from, address _to, uint256 _amount) public override notPaused returns(bool) {
+        require(_to != address(this));
         return ERC20.transferFrom(_from, _to, _amount);
     }
 }

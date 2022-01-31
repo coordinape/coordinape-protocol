@@ -48,14 +48,14 @@ contract TimeLock is Ownable {
 	}
 
 	function isReadyCall(bytes32 _id) public view returns(bool) {
-		return timestamps[_id] <= block.timestamp;
+		return timestamps[_id] <= block.timestamp && timestamps[_id] > _DONE_TIMESTAMP;
 	}
 
 	function schedule(address _target, bytes calldata _data, bytes32 _predecessor, bytes32 _salt, uint256 _delay) external onlyOwner {
 		bytes32 id = hashOperation(_target, _data, _predecessor, _salt);
 		require(timestamps[id] == 0, "TimeLock: Call already scheduled");
 		require(_delay >= minDelay, "TimeLock: Insufficient delay");
-		timestamps[id] = block.timestamp + minDelay;
+		timestamps[id] = block.timestamp + _delay;
 		emit CallScheduled(id, _target, _data, _predecessor, _delay);
 	}
 
@@ -68,7 +68,6 @@ contract TimeLock is Ownable {
 	function execute(address _target, bytes calldata _data, bytes32 _predecessor, bytes32 _salt, uint256 _delay) external onlyOwner {
 		bytes32 id = hashOperation(_target, _data, _predecessor, _salt);
 		require(isReadyCall(id), "TimeLock: Not ready for execution");
-		require(!isDoneCall(id), "TimeLock: Already executed");
 		require(_predecessor == bytes32(0) || isDoneCall(_predecessor), "TimeLock: Predecessor call not executed");
 		_call(id, _target, _data);
 		timestamps[id] = _DONE_TIMESTAMP;

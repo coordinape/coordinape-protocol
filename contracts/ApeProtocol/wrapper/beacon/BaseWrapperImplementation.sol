@@ -337,7 +337,7 @@ abstract contract BaseWrapperImplementation {
             if (availableShares > 0) {
                 // Intermediate step to move shares to this contract before withdrawing
                 // NOTE: No need for share transfer if this contract is `sender`
-                if (sender != address(this)) vaults[id].transferFrom(sender, address(this), availableShares);
+                // if (sender != address(this)) vaults[id].transferFrom(sender, address(this), availableShares);
 
                 if (amount != WITHDRAW_EVERYTHING) {
                     // Compute amount to withdraw fully to satisfy the request
@@ -351,11 +351,14 @@ abstract contract BaseWrapperImplementation {
                     // NOTE: Avoid corner case where `estimatedShares` isn't precise enough
                     // NOTE: If `0 < estimatedShares < 1` but `availableShares > 1`, this will withdraw more than necessary
                     if (estimatedShares > 0 && estimatedShares < availableShares) {
+                        if (sender != address(this)) vaults[id].transferFrom(sender, address(this), estimatedShares);
                         withdrawn = withdrawn.add(vaults[id].withdraw(estimatedShares));
                     } else {
+                        if (sender != address(this)) vaults[id].transferFrom(sender, address(this), availableShares);
                         withdrawn = withdrawn.add(vaults[id].withdraw(availableShares));
                     }
                 } else {
+                    if (sender != address(this)) vaults[id].transferFrom(sender, address(this), availableShares);
                     withdrawn = withdrawn.add(vaults[id].withdraw());
                 }
 

@@ -23,8 +23,9 @@
 5. 1. _token and _simpleToken (ApeVault.sol)
 	Added a require to make sure both variables are not address(0) at the same time
 
-6. Potential affect the calculation of the token balance of the Vault (BaseWrapperImplementation.sol) *PENDING*
-	I don't really understand the comment :( may need to ask some clarification
+6. Potential affect the calculation of the token balance of the Vault (BaseWrapperImplementation.sol)
+	Changed based on Panda's recommendation
+	Ultimately, this doesnt affect us because sender will always be != to address(this)
 
 7. Suspicious public function
 	Added onlyOwner modifier to the function execution
@@ -62,8 +63,9 @@ Recommendations:
 5. Remove unused variables (ApeVault.sol)
 	Removed
 
-6. Potential inconsistency due to the hardcoded yarnRegistry (ApeRouter.sol and ApeVaultFactoryBeacon.sol) *PENDING*
+6. Potential inconsistency due to the hardcoded yearnRegistry (ApeRouter.sol and ApeVaultFactoryBeacon.sol) *PENDING*
 	Will ask yearn team if registry would ever change, if not, have all hardcoded, if yes, add mutable option
+	- Should make it upgradeable
 
 7. Add more check (ApeDistributor.sol)
 	Worst outcome is that function execution would revert if token is not a yvToken. No change needed

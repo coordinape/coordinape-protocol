@@ -100,11 +100,11 @@ contract ApeVaultWrapperImplementation is BaseWrapperImplementation, OwnableImpl
 		_;
 	}
 
-	function _shareValue(uint256 numShares) internal view returns (uint256) {
+	function shareValue(uint256 numShares) public view returns (uint256) {
 		return vault.pricePerShare() * numShares / (10**uint256(vault.decimals()));
     }
 
-    function _sharesForValue(uint256 amount) internal view returns (uint256) {
+    function sharesForValue(uint256 amount) public view returns (uint256) {
 		return amount * (10**uint256(vault.decimals())) / vault.pricePerShare();
     }
 
@@ -114,7 +114,7 @@ contract ApeVaultWrapperImplementation is BaseWrapperImplementation, OwnableImpl
 	 * Returns 0 if negative
 	 */
 	function profit() public view returns(uint256) {
-		uint256 totalValue = _shareValue(vault.balanceOf(address(this)));
+		uint256 totalValue = shareValue(vault.balanceOf(address(this)));
 		if (totalValue <= underlyingValue)
 			return 0;
 		else
@@ -137,7 +137,7 @@ contract ApeVaultWrapperImplementation is BaseWrapperImplementation, OwnableImpl
 	 * @param _underlying boolean to know if we redeem shares or not
 	 */
 	function apeWithdraw(uint256 _shareAmount, bool _underlying) external onlyOwner {
-		uint256 underlyingAmount = _shareValue(_shareAmount);
+		uint256 underlyingAmount = shareValue(_shareAmount);
 		require(underlyingAmount <= underlyingValue, "underlying amount higher than vault value");
 
 		address router = ApeRegistry(apeRegistry).router();
@@ -198,7 +198,7 @@ contract ApeVaultWrapperImplementation is BaseWrapperImplementation, OwnableImpl
 	function _tapOnlyProfit(uint256 _tapValue, address _recipient) internal {
 		uint256 fee = FeeRegistry(ApeRegistry(apeRegistry).feeRegistry()).getVariableFee(_tapValue, _tapValue);
 		uint256 finalTapValue = _tapValue + _tapValue * fee / TOTAL_SHARES;
-		require(_shareValue(finalTapValue) <= profit(), "Not enough profit to cover epoch");
+		require(shareValue(finalTapValue) <= profit(), "Not enough profit to cover epoch");
 		vault.safeTransfer(_recipient, _tapValue);
 		vault.safeTransfer(ApeRegistry(apeRegistry).treasury(), _tapValue * fee / TOTAL_SHARES);
 	}
@@ -210,7 +210,7 @@ contract ApeVaultWrapperImplementation is BaseWrapperImplementation, OwnableImpl
 	 * @param _recipient recipient of funds (always distributor)
 	 */
 	function _tapBase(uint256 _tapValue, address _recipient) internal {
-		uint256 underlyingTapValue = _shareValue(_tapValue);
+		uint256 underlyingTapValue = shareValue(_tapValue);
 		uint256 profit_ = profit();
 		uint256 fee = FeeRegistry(ApeRegistry(apeRegistry).feeRegistry()).getVariableFee(profit_, underlyingTapValue);
 		uint256 finalTapValue = underlyingTapValue + underlyingTapValue * fee / TOTAL_SHARES;
@@ -237,7 +237,7 @@ contract ApeVaultWrapperImplementation is BaseWrapperImplementation, OwnableImpl
 	 * Used to correct change the amount of underlying funds held by the ape Vault
 	 */
 	function syncUnderlying() external onlyOwner {
-		underlyingValue = _shareValue(vault.balanceOf(address(this)));
+		underlyingValue = shareValue(vault.balanceOf(address(this)));
 	}
 
 	/**  

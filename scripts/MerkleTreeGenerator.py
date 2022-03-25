@@ -18,7 +18,7 @@ def main():
     file.close()
 
 def gen():
-    generate_merkle_tree_json('tests/address.csv', 'tests/amounts.csv', 'tests/merkle_test')
+    generate_merkle_tree_json('tests/address_rogue.csv', 'tests/amounts_rogue.csv', 'tests/merkle_test_rogue')
 
 def generate_merkle_tree_json(address_csv, amounts_csv, json_name):
     rows = fetch_data_from_csv(address_csv)

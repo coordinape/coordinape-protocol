@@ -379,3 +379,42 @@ def test_allowance_monthly(ape_reg, ape_fee, ape_distro, ape_router_registry_bea
     chain.sleep(60 * 60 * 24 * 31)
     with reverts('Circle cannot tap anymore'):
         ape_distro.uploadEpochRoot(ape_vault, circle, token, root, grant // 2 + 1, TAP_BASE, {'from': admin})
+
+def test_attack(ape_reg, ape_fee, ape_distro, ape_router_registry_beacon, ape_factory_registry_beacon, big_usdc, usdc, ApeVaultWrapperImplementation, minter, interface, chain):
+    setup_protocol(ape_reg, ape_fee, ape_distro, ape_router_registry_beacon, ape_factory_registry_beacon, minter)
+    user = accounts[0]
+    deposit = 11_000_000_000_000
+    usdc.transfer(user, deposit, {'from':big_usdc})
+    usdc.approve(ape_router_registry_beacon, 2 ** 256 -1, {'from':user})
+    tx = ape_factory_registry_beacon.createApeVault(usdc, '0x0000000000000000000000000000000000000000', {'from':user})
+    ape_vault = ApeVaultWrapperImplementation.at(tx.new_contracts[0])
+    # funding more than necessary
+    amount = 10_000_000_000_000
+    ape_router_registry_beacon.delegateDeposit(ape_vault, usdc, amount, {'from':user})
+    usdc_vault = interface.IERC20('0xa354F35829Ae975e850e23e9615b11Da1B3dC4DE')
+    circle = '0x1'
+    token = usdc_vault
+    grant = Wei('1_000_000_000_000')
+    root = '0x1838e0c6251730868cce6768e2062af0e72f79409a1f7011351bd2c1535e2a5c'
+    admin = accounts[1]
+    ape_vault.updateCircleAdmin(circle, admin, {'from':user})
+    # deposit 1M usdc
+    ape_distro.uploadEpochRoot(ape_vault, circle, token, root, grant, TAP_BASE, {'from': user})
+
+    # create rogue contract
+    r0gue_tx = ape_factory_registry_beacon.createApeVault(usdc, '0x0000000000000000000000000000000000000000', {'from':accounts[6]})
+    rogue_ape_vault = ApeVaultWrapperImplementation.at(r0gue_tx.new_contracts[0])
+    rogue_circle = '0x2'
+    token = usdc_vault
+    # this merkle root allows to send 1 000 000 to address 0x1
+    rogue_root = '0x7b691ec99ee808ce9f9a2b5855b10c9a15b17f9ca1dfff09ac3d217b86854704'
+    # deposit 0 usdc
+    ape_distro.uploadEpochRoot(rogue_ape_vault, rogue_circle, token, rogue_root, 0, TAP_BASE, {'from': accounts[6]})
+
+    claimer = '0x0000000000000000000000000000000000000001'
+    epoch = 0
+    index = 0
+    rogue_grant = Wei('1_000_000_000_000')
+    proof = ['0x761b73035d9dcf161946f8a668b724bba8f1ad27c85daba20bd4787a281bc762']
+    with reverts("Can't claim more than circle has to give"):
+        ape_distro.claim(rogue_circle, token, epoch, index, claimer, rogue_grant, False, proof, {'from':accounts[1]})

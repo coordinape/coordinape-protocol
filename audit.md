@@ -1,4 +1,4 @@
-
+https://github.com/coordinape/coordinape-protocol/commits/feat/fix_from_audit
 
 1. Incorrect delay time in schedule (TimeLock.sol)
 	Change made, this is correct, better stay consistent
@@ -75,3 +75,42 @@ Recommendations:
 	TOTAL_SHARES = 10000 in our ape vaults
 	Assuming a high yield ratio (100% ratio is when circle funding comes only from yield), a vault would have less fees taken out
 	
+
+
+
+
+
+Gas costs for disperse method: 
+- static overhead (base tx cost + mutations surrounding tap in vaults) = C (300k)
+- token transfer cost = T (35k gas)
+- User amount = N
+
+Total_cost_D = C + T * N (300k + 35k * N)
+Total cost in eth = Total_cost * gas_price (in wei)
+
+Gas costs for merkle method:
+- static overhead (base tx cost + mutations surrounding tap in vaults) = C (300k)
+- Merkle state updates (3 SSTORE ops) = M (15k - 60k)
+- User amount = N
+
+Total_cost_M = C + M (360k)
+
+in Comparison:
+Total_cost_D < Total_cost_M
+Total_cost_D - Total_cost_M < 0
+C + T * N - (C + M) < 0
+T * N < M
+
+Setip: 5/10/30/100 users @ 10
+
+Total_cost_D = 300k + 35k * 5 = 475,000
+Total_cost_D = 300k + 35k * 10 = 650,000
+Total_cost_D = 300k + 35k * 30 = 1,350,000
+Total_cost_D = 300k + 35k * 100 = 3,800,000
+
+Total_cost_M = 360k + 150k * 5 = 1,110,000
+Total_cost_M = 360k + 150k * 10 = 1,860,000
+Total_cost_M = 360k + 150k * 30 = 4,860,000
+Total_cost_M = 360k + 150k * 100 = 15,360,000
+caveat : users claim so gas to claim is not on us, each user
+

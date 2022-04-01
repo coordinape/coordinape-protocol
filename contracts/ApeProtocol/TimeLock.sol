@@ -67,7 +67,7 @@ contract TimeLock is Ownable {
 
 	function execute(address _target, bytes calldata _data, bytes32 _predecessor, bytes32 _salt, uint256 _delay) external onlyOwner {
 		bytes32 id = hashOperation(_target, _data, _predecessor, _salt);
-		require(isReadyCall(id), "TimeLock: Not ready for execution");
+		require(isReadyCall(id), "TimeLock: Not ready for execution or executed");
 		require(_predecessor == bytes32(0) || isDoneCall(_predecessor), "TimeLock: Predecessor call not executed");
 		_call(id, _target, _data);
 		timestamps[id] = _DONE_TIMESTAMP;

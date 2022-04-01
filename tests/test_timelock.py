@@ -38,10 +38,10 @@ def test_timelock(ape_reg, ape_fee, ape_distro, ape_router_registry_beacon, ape_
     ape_reg.schedule(ape_reg, set_router_call, '', web3.keccak(text='test_timelock'), 60 * 60 * 24 * 2 , {'from':minter})
     with reverts('TimeLock: Call already scheduled'):
         ape_reg.schedule(ape_reg, set_router_call, '', web3.keccak(text='test_timelock'), 60 * 60 * 24 * 2 , {'from':minter})
-    with reverts('TimeLock: Not ready for execution'):
+    with reverts('TimeLock: Not ready for execution or executed'):
         ape_reg.execute(ape_reg, set_router_call, '', web3.keccak(text='test_timelock'), 60 * 60 * 24 * 2 , {'from':minter})
     chain.sleep(60 * 60 * 24 * 2 + 1)
     ape_reg.execute(ape_reg, set_router_call, '', web3.keccak(text='test_timelock'), 60 * 60 * 24 * 2 , {'from':minter})
     assert ape_reg.router() == ape_reg
-    with reverts('TimeLock: Already executed'):
+    with reverts('TimeLock: Not ready for execution or executed'):
         ape_reg.execute(ape_reg, set_router_call, '', web3.keccak(text='test_timelock'), 60 * 60 * 24 * 2 , {'from':minter})

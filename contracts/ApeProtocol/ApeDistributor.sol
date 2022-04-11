@@ -49,7 +49,7 @@ contract ApeDistributor is ApeAllowanceModule {
 
 	event Claimed(address vault, bytes32 circle, address token, uint256 epoch, uint256 index, address account, uint256 amount);
 	
-	event EpochRootAdded(address indexed vault, bytes32 indexed circle, address indexed token, uint256 epochId, uint8 _tapType, uint256 amount);
+	event EpochFunded(address indexed vault, bytes32 indexed circle, address indexed token, uint256 epochId, uint8 _tapType, uint256 amount);
 
 	event yearnApeVaultFundsTapped(address indexed apeVault, address yearnVault, uint256 amount);
 
@@ -91,8 +91,9 @@ contract ApeDistributor is ApeAllowanceModule {
 		uint256 afterBal = IERC20(_token).balanceOf(address(this));
 		require(afterBal - beforeBal == _amount, "Did not receive correct amount of tokens");
 		if (sharesRemoved > 0)
-			emit EpochRootAdded(_vault, _circle, _token, epochTracking[_circle][_token], _tapType, sharesRemoved);
 			emit yearnApeVaultFundsTapped(_vault, address(ApeVaultWrapperImplementation(_vault).vault()), sharesRemoved);
+
+		emit EpochFunded(_vault, _circle, _token, epochTracking[_circle][_token], _tapType, _amount);
 	}
 
 	/**  

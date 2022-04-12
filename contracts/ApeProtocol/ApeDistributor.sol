@@ -74,7 +74,7 @@ contract ApeDistributor is ApeAllowanceModule {
 		bytes32 _root,
 		uint256 _amount,
 		uint8 _tapType)
-		external {
+		external returns(uint256){
 		require(ApeVaultFactoryBeacon(ApeRegistry(registry).factory()).vaultRegistry(_vault), "ApeDistributor: Vault does not exist");
 		bool isOwner = ApeVaultWrapperImplementation(_vault).owner() == msg.sender;
 		require(vaultApprovals[_vault][_circle] == msg.sender || isOwner, "Sender cannot upload a root");
@@ -94,6 +94,7 @@ contract ApeDistributor is ApeAllowanceModule {
 			emit yearnApeVaultFundsTapped(_vault, address(ApeVaultWrapperImplementation(_vault).vault()), sharesRemoved);
 
 		emit EpochFunded(_vault, _circle, _token, epochTracking[_circle][_token], _tapType, _amount);
+		return epochTracking[_circle][_token];
 	}
 
 	/**  

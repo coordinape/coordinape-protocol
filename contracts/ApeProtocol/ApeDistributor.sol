@@ -48,8 +48,6 @@ contract ApeDistributor is ApeAllowanceModule {
 	event AdminApproved(address indexed vault, bytes32 indexed circle, address indexed admin);
 
 	event Claimed(address vault, bytes32 circle, address token, uint256 epoch, uint256 index, address account, uint256 amount);
-	
-	event EpochFunded(address indexed vault, bytes32 indexed circle, address indexed token, uint256 epochId, uint8 _tapType, uint256 amount);
 
 	event yearnApeVaultFundsTapped(address indexed apeVault, address yearnVault, uint256 amount);
 
@@ -74,7 +72,7 @@ contract ApeDistributor is ApeAllowanceModule {
 		bytes32 _root,
 		uint256 _amount,
 		uint8 _tapType)
-		external returns(uint256){
+		external {
 		require(ApeVaultFactoryBeacon(ApeRegistry(registry).factory()).vaultRegistry(_vault), "ApeDistributor: Vault does not exist");
 		bool isOwner = ApeVaultWrapperImplementation(_vault).owner() == msg.sender;
 		require(vaultApprovals[_vault][_circle] == msg.sender || isOwner, "Sender cannot upload a root");
@@ -92,9 +90,6 @@ contract ApeDistributor is ApeAllowanceModule {
 		require(afterBal - beforeBal == _amount, "Did not receive correct amount of tokens");
 		if (sharesRemoved > 0)
 			emit yearnApeVaultFundsTapped(_vault, address(ApeVaultWrapperImplementation(_vault).vault()), sharesRemoved);
-
-		emit EpochFunded(_vault, _circle, _token, epoch++, _tapType, _amount);
-		return epochTracking[_circle][_token];
 	}
 
 	/**  

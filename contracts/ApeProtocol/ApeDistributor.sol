@@ -93,7 +93,7 @@ contract ApeDistributor is ApeAllowanceModule {
 		if (sharesRemoved > 0)
 			emit yearnApeVaultFundsTapped(_vault, address(ApeVaultWrapperImplementation(_vault).vault()), sharesRemoved);
 
-		emit EpochFunded(_vault, _circle, _token, epochTracking[_circle][_token], _tapType, _amount);
+		emit EpochFunded(_vault, _circle, _token, epoch++, _tapType, _amount);
 		return epochTracking[_circle][_token];
 	}
 

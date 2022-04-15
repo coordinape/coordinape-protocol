@@ -78,7 +78,10 @@ contract ApeDistributor is ApeAllowanceModule {
 		require(ApeVaultFactoryBeacon(ApeRegistry(registry).factory()).vaultRegistry(_vault), "ApeDistributor: Vault does not exist");
 		bool isOwner = ApeVaultWrapperImplementation(_vault).owner() == msg.sender;
 		require(vaultApprovals[_vault][_circle] == msg.sender || isOwner, "Sender cannot upload a root");
-		require(address(ApeVaultWrapperImplementation(_vault).vault()) == _token, "Vault cannot supply token");
+		if (_tapType == uint8(2))
+			require(address(ApeVaultWrapperImplementation(_vault).simpleToken()) == _token, "Vault cannot supply token");
+		else
+			require(address(ApeVaultWrapperImplementation(_vault).vault()) == _token, "Vault cannot supply token");
 		if (!isOwner)
 			_isTapAllowed(_vault, _circle, _token, _amount);
 		uint256 epoch = epochTracking[_circle][_token];
@@ -95,6 +98,54 @@ contract ApeDistributor is ApeAllowanceModule {
 
 		emit EpochFunded(_vault, _circle, _token, epoch++, _tapType, _amount);
 		return epochTracking[_circle][_token];
+	}
+
+	function sum(uint256[] calldata _vals) internal pure returns(uint256 res) {
+		for (uint256 i = 0; i < _vals.length; i++)
+			res += _vals[i];
+	}
+
+	/**  
+	* @notice
+	* Used to allow a circle to supply an epoch with funds from a given ape vault
+	* @param _vault Address of ape vault from which to take funds from
+	* @param _circle Circle ID querying the funds
+	* @param _token Address of the token to withdraw from the vault
+	* @param _users Users to receive tokens
+	* @param _amounts Tokens to give per user
+	* @param _amount Amount of tokens to withdraw
+	* @param _tapType Ape vault's type tap (pure profit, mixed, simple token)
+	*/
+	function tapEpochAndDistribute(
+		address _vault,
+		bytes32 _circle,
+		address _token,
+		address[] calldata _users,
+		uint256[] calldata _amounts,
+		uint256 _amount,
+		uint8 _tapType)
+		external {
+		require(_users.length == _amounts.length, "ApeDistributor: Array length do not match");
+		require(sum(_amounts) == _amount, "ApeDistributor: Amount does not match sum of values");
+		require(ApeVaultFactoryBeacon(ApeRegistry(registry).factory()).vaultRegistry(_vault), "ApeDistributor: Vault does not exist");
+		bool isOwner = ApeVaultWrapperImplementation(_vault).owner() == msg.sender;
+		require(vaultApprovals[_vault][_circle] == msg.sender || isOwner, "Sender cannot upload a root");
+		if (_tapType == uint8(2))
+			require(address(ApeVaultWrapperImplementation(_vault).simpleToken()) == _token, "Vault cannot supply token");
+		else
+			require(address(ApeVaultWrapperImplementation(_vault).vault()) == _token, "Vault cannot supply token");
+
+		if (!isOwner)
+			_isTapAllowed(_vault, _circle, _token, _amount);
+		epochTracking[_circle][_token]++;
+		uint256 beforeBal = IERC20(_token).balanceOf(address(this));
+		uint256 sharesRemoved = ApeVaultWrapperImplementation(_vault).tap(_amount, _tapType);
+		uint256 afterBal = IERC20(_token).balanceOf(address(this));
+		require(afterBal - beforeBal == _amount, "Did not receive correct amount of tokens");
+		for (uint256 i = 0; i < _users.length; i++)
+			IERC20(_token).transfer(_users[i], _amounts[i]);
+		if (sharesRemoved > 0)
+			emit apeVaultFundsTapped(_vault, address(ApeVaultWrapperImplementation(_vault).vault()), sharesRemoved);
 	}
 
 	/**  

@@ -106,7 +106,7 @@ contract ApeDistributor is ApeAllowanceModule {
 
 	/**  
 	* @notice
-	* Used to allow a circle to supply an epoch with funds from a given ape vault
+	* Used to distribute funds from an epoch directly to users
 	* @param _vault Address of ape vault from which to take funds from
 	* @param _circle Circle ID querying the funds
 	* @param _token Address of the token to withdraw from the vault

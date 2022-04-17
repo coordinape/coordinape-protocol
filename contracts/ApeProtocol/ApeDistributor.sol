@@ -84,7 +84,6 @@ contract ApeDistributor is ApeAllowanceModule {
 		if (sharesRemoved > 0)
 			emit yearnApeVaultFundsTapped(_vault, address(ApeVaultWrapperImplementation(_vault).vault()), sharesRemoved);
 
-		epochTracking[_circle][_token]++;
 	}
 
 	/**  
@@ -105,14 +104,12 @@ contract ApeDistributor is ApeAllowanceModule {
 		uint256 _amount,
 		uint8 _tapType)
 		external {
-		// store this value first, because it will be incremented during _tap, but
-		// we want to use the original value to store the root
-		uint256 epoch = epochTracking[_circle][_token];
-
 		_tap(_vault, _circle, _token, _amount, _tapType);
 
-		epochRoots[_vault][_circle][_token][epoch] = _root;
 		circleAlloc[_vault][_circle][_token] += _amount;
+		uint256 epoch = epochTracking[_circle][_token];
+		epochRoots[_vault][_circle][_token][epoch] = _root;
+		epochTracking[_circle][_token]++;
 
 		emit EpochFunded(_vault, _circle, _token, epoch++, _tapType, _amount);
 	}

@@ -82,4 +82,4 @@ contract TokenAccessControl is Ownable {
 		require(!mintingDisabled, "AccessControl: Contract cannot mint anymore");
 		mintingDisabled = true;
 	}
-}%
+}

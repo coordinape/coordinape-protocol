@@ -111,7 +111,7 @@ contract ApeDistributor is ApeAllowanceModule {
 		epochRoots[_vault][_circle][_token][epoch] = _root;
 		epochTracking[_circle][_token]++;
 
-		emit EpochFunded(_vault, _circle, _token, epoch++, _tapType, _amount);
+		emit EpochFunded(_vault, _circle, _token, epoch, _tapType, _amount);
 	}
 
 	function sum(uint256[] calldata _vals) internal pure returns(uint256 res) {

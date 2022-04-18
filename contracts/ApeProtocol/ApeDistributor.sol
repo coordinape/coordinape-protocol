@@ -83,7 +83,6 @@ contract ApeDistributor is ApeAllowanceModule {
 
 		if (sharesRemoved > 0)
 			emit yearnApeVaultFundsTapped(_vault, address(ApeVaultWrapperImplementation(_vault).vault()), sharesRemoved);
-
 	}
 
 	/**  

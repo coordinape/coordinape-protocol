@@ -25,7 +25,6 @@ contract ApeRouter is TimeLock {
 	event DepositInVault(address indexed vault, address token, uint256 amount);
 	event WithdrawFromVault(address indexed vault, address token, uint256 amount);
 
-
 	function delegateDepositYvTokens(address _apeVault, address _yvToken, address _token, uint256 _amount) external returns(uint256 deposited) {
 		VaultAPI vault = VaultAPI(RegistryAPI(yearnRegistry).latestVault(_token));
 		require(address(vault) != address(0), "ApeRouter: No vault for token");
@@ -37,7 +36,6 @@ contract ApeRouter is TimeLock {
 		deposited = vault.pricePerShare() * _amount / (10**uint256(vault.decimals()));
 		ApeVaultWrapperImplementation(_apeVault).addFunds(deposited);
 		emit DepositInVault(_apeVault, _token, _amount);
-
 	}
 
 	function delegateDeposit(address _apeVault, address _token, uint256 _amount) external returns(uint256 deposited) {
@@ -46,20 +44,19 @@ contract ApeRouter is TimeLock {
 		require(ApeVaultFactoryBeacon(apeVaultFactory).vaultRegistry(_apeVault), "ApeRouter: Vault does not exist");
 		require(address(vault) == address(ApeVaultWrapperImplementation(_apeVault).vault()), "ApeRouter: yearn Vault not identical");
 
-        IERC20(_token).safeTransferFrom(msg.sender, address(this), _amount);
+		IERC20(_token).safeTransferFrom(msg.sender, address(this), _amount);
 
 		if (IERC20(_token).allowance(address(this), address(vault)) < _amount) {
-            IERC20(_token).safeApprove(address(vault), 0); // Avoid issues with some IERC20(_token)s requiring 0
-            IERC20(_token).safeApprove(address(vault), _amount); // Vaults are trusted
-        }
+			IERC20(_token).safeApprove(address(vault), 0); // Avoid issues with some IERC20(_token)s requiring 0
+			IERC20(_token).safeApprove(address(vault), _amount); // Vaults are trusted
+		}
 
 		uint256 beforeBal = IERC20(_token).balanceOf(address(this));
         
 		uint256 sharesMinted = vault.deposit(_amount, _apeVault);
 
-        uint256 afterBal = IERC20(_token).balanceOf(address(this));
-        deposited = beforeBal - afterBal;
-
+		uint256 afterBal = IERC20(_token).balanceOf(address(this));
+		deposited = beforeBal - afterBal;
 
 		ApeVaultWrapperImplementation(_apeVault).addFunds(deposited);
 		emit DepositInVault(_apeVault, _token, sharesMinted);
@@ -82,12 +79,12 @@ contract ApeRouter is TimeLock {
 		IERC20(_token).transfer(msg.sender, IERC20(_token).balanceOf(address(this)));
 	}
 
-	 /**
-     * @notice
-     *  Used to update the yearn registry.
-     * @param _registry The new _registry address.
-     */
-    function setRegistry(address _registry) external itself {
-        yearnRegistry = _registry;
-    }
+	/**
+		* @notice
+		*  Used to update the yearn registry.
+		* @param _registry The new _registry address.
+		*/
+	function setRegistry(address _registry) external itself {
+		yearnRegistry = _registry;
+	}
 }

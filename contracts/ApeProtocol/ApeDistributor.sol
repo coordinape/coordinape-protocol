@@ -63,7 +63,7 @@ contract ApeDistributor is ApeAllowanceModule {
 		address _token,
 		uint256 _amount,
 		uint8 _tapType,
-		uint256 _root
+		bytes32 _root
 	) internal {
 		require(ApeVaultFactoryBeacon(ApeRegistry(registry).factory()).vaultRegistry(_vault), "ApeDistributor: Vault does not exist");
 		bool isOwner = ApeVaultWrapperImplementation(_vault).owner() == msg.sender;
@@ -143,7 +143,7 @@ contract ApeDistributor is ApeAllowanceModule {
 		require(_users.length == _amounts.length, "ApeDistributor: Array lengths do not match");
 		require(sum(_amounts) == _amount, "ApeDistributor: Amount does not match sum of values");
 
-		_tap(_vault, _circle, _token, _amount, _tapType, type(uint256).max);
+		_tap(_vault, _circle, _token, _amount, _tapType, bytes32(type(uint256).max));
 
 		for (uint256 i = 0; i < _users.length; i++)
 			IERC20(_token).transfer(_users[i], _amounts[i]);

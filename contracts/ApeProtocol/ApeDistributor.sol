@@ -35,8 +35,8 @@ contract ApeDistributor is ApeAllowanceModule {
 
 	// roots following this mapping:
 	// vault address => circle ID => token address => epoch ID => root
-	mapping(address => mapping(bytes32 =>mapping(address => mapping(uint256 => bytes32)))) public epochRoots;
-	mapping(bytes32 =>mapping(address => uint256)) public epochTracking;
+	mapping(address => mapping(bytes32 => mapping(address => mapping(uint256 => bytes32)))) public epochRoots;
+	mapping(bytes32 => mapping(address => uint256)) public epochTracking;
 	mapping(address => mapping(bytes32 => mapping(address => mapping(uint256 => mapping(uint256 => uint256))))) public epochClaimBitMap;
 
 	mapping(address => mapping(bytes32 => mapping(address => uint256))) public circleAlloc;
@@ -48,11 +48,48 @@ contract ApeDistributor is ApeAllowanceModule {
 	event AdminApproved(address indexed vault, bytes32 indexed circle, address indexed admin);
 
 	event Claimed(address vault, bytes32 circle, address token, uint256 epoch, uint256 index, address account, uint256 amount);
+	
+	event EpochFunded(address indexed vault, bytes32 indexed circle, address indexed token, uint256 epochId, uint8 _tapType, uint256 amount);
 
 	event yearnApeVaultFundsTapped(address indexed apeVault, address yearnVault, uint256 amount);
 
 	constructor(address _registry) {
 		registry = _registry;
+	}
+
+	function _tap(
+		address _vault,
+		bytes32 _circle,
+		address _token,
+		uint256 _amount,
+		uint8 _tapType,
+		bytes32 _root
+	) internal {
+		require(ApeVaultFactoryBeacon(ApeRegistry(registry).factory()).vaultRegistry(_vault), "ApeDistributor: Vault does not exist");
+		bool isOwner = ApeVaultWrapperImplementation(_vault).owner() == msg.sender;
+		require(vaultApprovals[_vault][_circle] == msg.sender || isOwner, "ApeDistributor: Sender not approved");
+		
+		if (_tapType == uint8(2))
+			require(address(ApeVaultWrapperImplementation(_vault).simpleToken()) == _token, "ApeDistributor: Vault cannot supply token");
+		else
+			require(address(ApeVaultWrapperImplementation(_vault).vault()) == _token, "ApeDistributor: Vault cannot supply token");
+			
+		if (!isOwner)
+			_isTapAllowed(_vault, _circle, _token, _amount);
+		
+		uint256 beforeBal = IERC20(_token).balanceOf(address(this));
+		uint256 sharesRemoved = ApeVaultWrapperImplementation(_vault).tap(_amount, _tapType);
+		uint256 afterBal = IERC20(_token).balanceOf(address(this));
+		require(afterBal - beforeBal == _amount, "ApeDistributor: Did not receive correct amount of tokens");
+
+		if (sharesRemoved > 0)
+			emit yearnApeVaultFundsTapped(_vault, address(ApeVaultWrapperImplementation(_vault).vault()), sharesRemoved);
+		
+		uint256 epoch = epochTracking[_circle][_token];
+		epochRoots[_vault][_circle][_token][epoch] = _root;
+		epochTracking[_circle][_token]++;
+
+		emit EpochFunded(_vault, _circle, _token, epoch, _tapType, _amount);
 	}
 
 	/**  
@@ -73,23 +110,43 @@ contract ApeDistributor is ApeAllowanceModule {
 		uint256 _amount,
 		uint8 _tapType)
 		external {
-		require(ApeVaultFactoryBeacon(ApeRegistry(registry).factory()).vaultRegistry(_vault), "ApeDistributor: Vault does not exist");
-		bool isOwner = ApeVaultWrapperImplementation(_vault).owner() == msg.sender;
-		require(vaultApprovals[_vault][_circle] == msg.sender || isOwner, "Sender cannot upload a root");
-		require(address(ApeVaultWrapperImplementation(_vault).vault()) == _token, "Vault cannot supply token");
-		if (!isOwner)
-			_isTapAllowed(_vault, _circle, _token, _amount);
-		uint256 epoch = epochTracking[_circle][_token];
-		epochRoots[_vault][_circle][_token][epoch] = _root;
+		_tap(_vault, _circle, _token, _amount, _tapType, _root);
 
-		epochTracking[_circle][_token]++;
 		circleAlloc[_vault][_circle][_token] += _amount;
-		uint256 beforeBal = IERC20(_token).balanceOf(address(this));
-		uint256 sharesRemoved = ApeVaultWrapperImplementation(_vault).tap(_amount, _tapType);
-		uint256 afterBal = IERC20(_token).balanceOf(address(this));
-		require(afterBal - beforeBal == _amount, "Did not receive correct amount of tokens");
-		if (sharesRemoved > 0)
-			emit yearnApeVaultFundsTapped(_vault, address(ApeVaultWrapperImplementation(_vault).vault()), sharesRemoved);
+	}
+
+	function sum(uint256[] calldata _vals) internal pure returns(uint256 res) {
+		for (uint256 i = 0; i < _vals.length; i++)
+			res += _vals[i];
+	}
+
+	/**  
+	* @notice
+	* Used to distribute funds from an epoch directly to users
+	* @param _vault Address of ape vault from which to take funds from
+	* @param _circle Circle ID querying the funds
+	* @param _token Address of the token to withdraw from the vault
+	* @param _users Users to receive tokens
+	* @param _amounts Tokens to give per user
+	* @param _amount Amount of tokens to withdraw
+	* @param _tapType Ape vault's type tap (pure profit, mixed, simple token)
+	*/
+	function tapEpochAndDistribute(
+		address _vault,
+		bytes32 _circle,
+		address _token,
+		address[] calldata _users,
+		uint256[] calldata _amounts,
+		uint256 _amount,
+		uint8 _tapType)
+		external {
+		require(_users.length == _amounts.length, "ApeDistributor: Array lengths do not match");
+		require(sum(_amounts) == _amount, "ApeDistributor: Amount does not match sum of values");
+
+		_tap(_vault, _circle, _token, _amount, _tapType, bytes32(type(uint256).max));
+
+		for (uint256 i = 0; i < _users.length; i++)
+			IERC20(_token).transfer(_users[i], _amounts[i]);
 	}
 
 	/**  

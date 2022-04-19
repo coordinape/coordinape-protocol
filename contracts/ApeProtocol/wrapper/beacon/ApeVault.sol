@@ -81,11 +81,11 @@ contract ApeVaultWrapperImplementation is BaseWrapperImplementation, OwnableImpl
 		simpleToken = IERC20(_simpleToken);
 
 		// Recommended to use a token with a `Registry.latestVault(_token) != address(0)`
-        token = IERC20(_token);
-        // Recommended to use `v2.registry.ychad.eth`
-        registry = RegistryAPI(_registry);
+		token = IERC20(_token);
+		// Recommended to use `v2.registry.ychad.eth`
+		registry = RegistryAPI(_registry);
 		_owner = _newOwner;
-        emit OwnershipTransferred(address(0), _newOwner);
+		emit OwnershipTransferred(address(0), _newOwner);
 	}
 
 	event ApeVaultFundWithdrawal(address indexed apeVault, address vault, uint256 _amount, bool underlying);
@@ -102,11 +102,11 @@ contract ApeVaultWrapperImplementation is BaseWrapperImplementation, OwnableImpl
 
 	function shareValue(uint256 numShares) public view returns (uint256) {
 		return vault.pricePerShare() * numShares / (10**uint256(vault.decimals()));
-    }
+	}
 
-    function sharesForValue(uint256 amount) public view returns (uint256) {
+	function sharesForValue(uint256 amount) public view returns (uint256) {
 		return amount * (10**uint256(vault.decimals())) / vault.pricePerShare();
-    }
+	}
 
 	/**  
 	 * @notice

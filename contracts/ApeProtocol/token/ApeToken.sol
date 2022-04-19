@@ -5,9 +5,8 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import "./TokenAccessControl.sol";
 
-contract ApeToken is ERC20("coordinape.com", "APE"), TokenAccessControl {
+contract COToken is ERC20("coordinape.com", "CO"), TokenAccessControl {
 	uint256 immutable private _cap = 1_000_000_000 ether;
-    string private mutableSymbol;
 
 	bytes32 private immutable _PERMIT_TYPEHASH = keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)");
 	bytes32 public DOMAIN_SEPARATOR;
@@ -15,7 +14,6 @@ contract ApeToken is ERC20("coordinape.com", "APE"), TokenAccessControl {
 	mapping(address => uint256) public nonces;
 
 	constructor() {
-        mutableSymbol = "COOP";
 		uint chainId = block.chainid;
         DOMAIN_SEPARATOR = keccak256(
             abi.encode(
@@ -28,20 +26,12 @@ contract ApeToken is ERC20("coordinape.com", "APE"), TokenAccessControl {
         );
 	}
 
-    function updateSymbol(string calldata _sym) external onlyOwner {
-        mutableSymbol = _sym;
-    }
-
-    function symbol() public view override returns (string memory) {
-        return mutableSymbol;
-    }
-
 	function cap() public view virtual returns (uint256) {
         return _cap;
     }
 
 	function _mint(address account, uint256 amount) internal virtual override {
-        require(totalSupply() + amount <= cap(), "ApeToken: cap exceeded");
+        require(totalSupply() + amount <= cap(), "COToken: cap exceeded");
         super._mint(account, amount);
     }
 
@@ -50,8 +40,8 @@ contract ApeToken is ERC20("coordinape.com", "APE"), TokenAccessControl {
     }
 
 	function permit(address owner, address spender, uint256 value, uint256 deadline, uint8 v, bytes32 r, bytes32 s) public {
-        require(block.timestamp <= deadline, "ApeToken: expired deadline");
-        require(owner != address(0), "ApeToken: owner can't be ZERO address ");
+        require(block.timestamp <= deadline, "COToken: expired deadline");
+        require(owner != address(0), "COToken: owner can't be ZERO address ");
 
         bytes32 digest = keccak256(
             abi.encode(
@@ -62,18 +52,18 @@ contract ApeToken is ERC20("coordinape.com", "APE"), TokenAccessControl {
         );
 
         address signer = ECDSA.recover(digest, v, r, s);
-        require(signer == owner, "ApeToken: invalid signature");
+        require(signer == owner, "COToken: invalid signature");
 
         _approve(owner, spender, value);
     }
 
     function transfer(address _to, uint256 _amount) public override notPaused returns(bool) {
-        require(_to != address(this));
+        require(_to != address(this), "COToken: Cannot transfer to self");
         return ERC20.transfer(_to, _amount);
     }
 
     function transferFrom(address _from, address _to, uint256 _amount) public override notPaused returns(bool) {
-        require(_to != address(this));
+        require(_to != address(this), "COToken: Cannot transfer to self");
         return ERC20.transferFrom(_from, _to, _amount);
     }
 }

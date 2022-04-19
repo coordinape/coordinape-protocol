@@ -5,21 +5,21 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 
 contract TokenAccessControl is Ownable {
 	mapping(address => bool) public minters;
-	mapping(address => bool) public whitelistedAddresses;
+	mapping(address => bool) public allowlistedAddresses;
 
 	bool public paused;
 	bool public foreverUnpaused;
 	bool public mintingDisabled;
-	bool public whitelistDisabled;
+	bool public allowlistDisabled;
 
 	event MintersAdded(address[] minters);
 	event MintersRemoved(address[] minters);
-	event WhitelistedAddressesAdded(address[] minters);
-	event WhitelistedAddressesRemoved(address[] minters);
+	event AllowlistedAddressesAdded(address[] minters);
+	event AllowlistedAddressesRemoved(address[] minters);
 
 
 	modifier notPaused() {
-		require(!paused || (!whitelistDisabled && whitelistedAddresses[msg.sender]), "AccessControl: User cannot transfer");
+		require(!paused || (!allowlistDisabled && allowlistedAddresses[msg.sender]), "AccessControl: User cannot transfer");
 		_;
 	}
 
@@ -29,15 +29,15 @@ contract TokenAccessControl is Ownable {
 		_;
 	}
 
-	function disableWhitelist() external onlyOwner {
-		require(!whitelistDisabled, "AccessControl: Whitelist already disabled");
-		whitelistDisabled = true;
+	function disableAllowlist() external onlyOwner {
+		require(!allowlistDisabled, "AccessControl: Allowlist already disabled");
+		allowlistDisabled = true;
 	}
 
 	function changePauseStatus(bool _status) external onlyOwner {
 		require(!foreverUnpaused, "AccessControl: Contract is unpaused forever");
 		paused = _status;
-	} 
+	}
 
 
 	function disablePausingForever() external onlyOwner {
@@ -62,20 +62,20 @@ contract TokenAccessControl is Ownable {
 		emit MintersRemoved(_minters);
 	}
 
-	function addWhitelistedAddresses(address[] calldata _addresses) external onlyOwner {
-		require(!whitelistDisabled, "AccessControl: Whitelist already disabled");
+	function addAllowlistedAddresses(address[] calldata _addresses) external onlyOwner {
+		require(!allowlistDisabled, "AccessControl: Allowlist already disabled");
 
 		for(uint256 i = 0; i < _addresses.length; i++)
-			whitelistedAddresses[_addresses[i]] = true;
-		emit WhitelistedAddressesAdded(_addresses);
+			allowlistedAddresses[_addresses[i]] = true;
+		emit AllowlistedAddressesAdded(_addresses);
 	}
 
-	function removeWhitelistedAddresses(address[] calldata _addresses) external onlyOwner {
-		require(!whitelistDisabled, "AccessControl: Whitelist already disabled");
+	function removeAllowlistedAddresses(address[] calldata _addresses) external onlyOwner {
+		require(!allowlistDisabled, "AccessControl: Allowlist already disabled");
 
 		for(uint256 i = 0; i < _addresses.length; i++)
-			whitelistedAddresses[_addresses[i]] = false;
-		emit WhitelistedAddressesRemoved(_addresses);
+			allowlistedAddresses[_addresses[i]] = false;
+		emit AllowlistedAddressesRemoved(_addresses);
 	}
 
 	function disableMintingForever() external onlyOwner {

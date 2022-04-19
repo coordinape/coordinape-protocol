@@ -62,7 +62,8 @@ contract ApeDistributor is ApeAllowanceModule {
 		bytes32 _circle,
 		address _token,
 		uint256 _amount,
-		uint8 _tapType
+		uint8 _tapType,
+		uint256 _root
 	) internal {
 		require(ApeVaultFactoryBeacon(ApeRegistry(registry).factory()).vaultRegistry(_vault), "ApeDistributor: Vault does not exist");
 		bool isOwner = ApeVaultWrapperImplementation(_vault).owner() == msg.sender;
@@ -83,6 +84,12 @@ contract ApeDistributor is ApeAllowanceModule {
 
 		if (sharesRemoved > 0)
 			emit yearnApeVaultFundsTapped(_vault, address(ApeVaultWrapperImplementation(_vault).vault()), sharesRemoved);
+		
+		uint256 epoch = epochTracking[_circle][_token];
+		epochRoots[_vault][_circle][_token][epoch] = _root;
+		epochTracking[_circle][_token]++;
+
+		emit EpochFunded(_vault, _circle, _token, epoch, _tapType, _amount);
 	}
 
 	/**  
@@ -103,14 +110,9 @@ contract ApeDistributor is ApeAllowanceModule {
 		uint256 _amount,
 		uint8 _tapType)
 		external {
-		_tap(_vault, _circle, _token, _amount, _tapType);
+		_tap(_vault, _circle, _token, _amount, _tapType, _root);
 
 		circleAlloc[_vault][_circle][_token] += _amount;
-		uint256 epoch = epochTracking[_circle][_token];
-		epochRoots[_vault][_circle][_token][epoch] = _root;
-		epochTracking[_circle][_token]++;
-
-		emit EpochFunded(_vault, _circle, _token, epoch, _tapType, _amount);
 	}
 
 	function sum(uint256[] calldata _vals) internal pure returns(uint256 res) {
@@ -141,7 +143,7 @@ contract ApeDistributor is ApeAllowanceModule {
 		require(_users.length == _amounts.length, "ApeDistributor: Array lengths do not match");
 		require(sum(_amounts) == _amount, "ApeDistributor: Amount does not match sum of values");
 
-		_tap(_vault, _circle, _token, _amount, _tapType);
+		_tap(_vault, _circle, _token, _amount, _tapType, type(uint256).max);
 
 		for (uint256 i = 0; i < _users.length; i++)
 			IERC20(_token).transfer(_users[i], _amounts[i]);

@@ -161,7 +161,8 @@ contract ApeVaultWrapperImplementation is BaseWrapperImplementation, OwnableImpl
 
 	/**  
 	 * @notice
-	 * Used to migrate yearn vault
+	 * Used to migrate yearn vault. _migrate(address) takes the address of the receiver of the funds, in our case, the contract itself.
+	 * It is expected that the receiver is the vault
 	 */
 	function apeMigrate() external onlyOwner returns(uint256 migrated){
 		migrated = _migrate(address(this));

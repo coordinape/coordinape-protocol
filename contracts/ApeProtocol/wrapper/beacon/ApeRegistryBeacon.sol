@@ -12,6 +12,8 @@ contract ApeRegistryBeacon is TimeLock {
 
 	mapping(address => uint256) public deploymentPref;
 
+	event NewImplementationPushed(address newImplementation);
+
 	constructor(address _apeVault, uint256 _minDelay) TimeLock(_minDelay) {
 		require(Address.isContract(_apeVault), "ApeRegistryBeacon: implementaion is not a contract");
 		deployments[++deploymentCount] = _apeVault;
@@ -37,5 +39,6 @@ contract ApeRegistryBeacon is TimeLock {
 	function pushNewImplementation(address _newImplementation) public itself {
 		require(Address.isContract(_newImplementation), "ApeRegistryBeacon: implementaion is not a contract");
 		deployments[++deploymentCount] = _newImplementation;
+		emit NewImplementationPushed(_newImplementation);
 	}
 }

@@ -24,6 +24,7 @@ contract ApeRouter is TimeLock {
 
 	event DepositInVault(address indexed vault, address token, uint256 amount);
 	event WithdrawFromVault(address indexed vault, address token, uint256 amount);
+	event YearnRegistryUpdated(address registry);
 
 	function delegateDepositYvTokens(address _apeVault, address _yvToken, address _token, uint256 _amount) external returns(uint256 deposited) {
 		VaultAPI vault = VaultAPI(RegistryAPI(yearnRegistry).latestVault(_token));
@@ -76,7 +77,7 @@ contract ApeRouter is TimeLock {
 	}
 
 	function removeTokens(address _token) external onlyOwner {
-		IERC20(_token).transfer(msg.sender, IERC20(_token).balanceOf(address(this)));
+		IERC20(_token).safeTransfer(msg.sender, IERC20(_token).balanceOf(address(this)));
 	}
 
 	/**
@@ -86,5 +87,6 @@ contract ApeRouter is TimeLock {
 		*/
 	function setRegistry(address _registry) external itself {
 		yearnRegistry = _registry;
+		emit YearnRegistryUpdated(_registry);
 	}
 }

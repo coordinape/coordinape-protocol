@@ -41,22 +41,31 @@ def deploy_protocol():
 	
 
 def deploy_protocol_testnet():
-	# user = accounts.load('moist', '\0')
-	user = accounts[0]
+	user = accounts.load('moist', '\0')
+	# user = accounts[0]
 	
-	multi_sig = user
+	multi_sig = accounts.from_mnemonic('absurd napkin barrel goose actual beauty volume dish carpet spoon forest scrap', count=1)
 	lock_length = 60 * 60 * 24 * 14 # 14 days
 
-	mock_yearn_reg = MockRegistry.deploy({'from':user}, publish_source=False)
-	mock_yearn_vault_factories = MockVaultFactory.deploy(mock_yearn_reg, {'from':user}, publish_source=False)
-	mock_ape_reg = ApeRegistry.deploy(multi_sig, 0, {'from':user}, publish_source=False)
-	mock_vault_imp = ApeVaultWrapperImplementation.deploy({'from':user}, publish_source=False)
-	mock_registry_beacon = ApeRegistryBeacon.deploy(mock_vault_imp, 0,{'from':user}, publish_source=False)
-	mock_ape_factory = ApeVaultFactoryBeacon.deploy(mock_yearn_reg, mock_ape_reg, mock_registry_beacon, {'from':user}, publish_source=False)
-	mock_ape_router = ApeRouter.deploy(mock_yearn_reg, mock_ape_factory, 0, {'from':user}, publish_source=False)
-	mock_ape_distro = ApeDistributor.deploy(mock_ape_reg, {'from':user}, publish_source=False)
-	mock_ape_fee = FeeRegistry.deploy({'from':user}, publish_source=False)
-	setup_protocol(mock_ape_reg, mock_ape_fee, mock_ape_distro, mock_ape_router, mock_ape_factory, user)
+	# mock_yearn_reg = MockRegistry.deploy({'from':user}, publish_source=True)
+	# mock_yearn_vault_factories = MockVaultFactory.deploy(mock_yearn_reg, {'from':user}, publish_source=True)
+	# mock_ape_reg = ApeRegistry.deploy(multi_sig, 0, {'from':user}, publish_source=True)
+	# mock_vault_imp = ApeVaultWrapperImplementation.deploy({'from':user}, publish_source=True)
+	# mock_registry_beacon = ApeRegistryBeacon.deploy(mock_vault_imp, 0,{'from':user}, publish_source=True)
+	mock_yearn_reg = MockRegistry.at('0xe8a0721aF820630398994127C5592d41bB939689')
+	mock_yearn_vault_factories = MockVaultFactory.at('0xf968AF55F713BA8284f24c37de8636529b3F9425')
+	mock_ape_reg = ApeRegistry.at('0x679FE7F8D263B738953151affF97F3af51E0A126')
+	mock_vault_imp = ApeVaultWrapperImplementation.at('0xB4F0834b552c473A39EE6Ae7058E6735d95F856D')
+	mock_registry_beacon = ApeRegistryBeacon.at('0xC1AB48d19B63d0330f71d423bEEacdB2104D3DaF')
+	# mock_ape_factory = ApeVaultFactoryBeacon.deploy(mock_yearn_reg, mock_ape_reg, mock_registry_beacon, {'from':user}, publish_source=True)
+	# mock_ape_router = ApeRouter.deploy(mock_yearn_reg, mock_ape_factory, 0, {'from':user}, publish_source=True)
+	# mock_ape_distro = ApeDistributor.deploy(mock_ape_reg, {'from':user}, publish_source=True)
+	# mock_ape_fee = FeeRegistry.deploy({'from':user}, publish_source=True)
+	mock_ape_factory = ApeVaultFactoryBeacon.at('0x38034CCECa1A6ce2Bc1cA736D4134AF994154660')
+	mock_ape_router = ApeRouter.at('0x04Ad1e2Af8A4331a6a10D4b7Ae92e983bD5b33C2')
+	mock_ape_distro = ApeDistributor.at('0x1C07320B1588885d3cddacb3e592622dbf9e28e6')
+	mock_ape_fee = FeeRegistry.at('0x5Bd2C39d5CB3344601b2ACF0C36eEf28Bac18068')
+	# setup_protocol(mock_ape_reg, mock_ape_fee, mock_ape_distro, mock_ape_router, mock_ape_factory, user)
 	setup_mockvaults(mock_yearn_vault_factories, user)
 	# min_delay_call = mock_ape_reg.changeMinDelay.encode_input(lock_length)
 	# mock_ape_reg.schedule(mock_ape_reg, min_delay_call, '', '', 0, {'from':user})
@@ -97,18 +106,21 @@ def setup_protocol(ape_reg, ape_fee, ape_distro, ape_router, ape_factory, minter
     ape_reg.execute(ape_reg, set_treasury_call, '', '', 0, {'from':minter})
 
 def setup_mockvaults(mock_yearn_vault_factories, user):
-	usdc = MockToken.deploy('USD Coin', 'USDC', {'from':user}, publish_source=False)
-	dai = MockToken.deploy('Dai', 'DAI', {'from':user})
-	ape = MockToken.deploy('Ape', 'OOH', {'from':user})
-	tx1 = mock_yearn_vault_factories.createVault(usdc, 'yearnVault USDC', 'yvUSDC', {'from':user})
-	# MockVault.publish_source(tx1.new_contracts[0])
-	tx2 = mock_yearn_vault_factories.createVault(dai, 'yearnVault DAI', 'yvDAI', {'from':user})
-	tx3 = mock_yearn_vault_factories.createVault(ape, 'yearnVault Ape', 'yvOOH', {'from':user})
+# 	usdc = MockToken.deploy('USD Coin', 'USDC', {'from':user}, publish_source=True)
+# 	dai = MockToken.deploy('Dai', 'DAI', {'from':user})
+# 	ape = MockToken.deploy('Ape', 'OOH', {'from':user})
+	usdc = MockToken.at('0x0e96493B9011e733ef8E4255092626705E462b8e')
+	dai = MockToken.at('0x8e34054aA3F9CD541fE4B0fb9c4A45281178e7c6')
+	ape = MockToken.at('0x65AE42B1c82BF9E2A270B2cf26D1fb28639e8793')
+	# tx1 = mock_yearn_vault_factories.createVault(usdc, 'yearnVault USDC', 'yvUSDC', {'from':user})
+	# # MockVault.publish_source(tx1.new_contracts[0])
+	# tx2 = mock_yearn_vault_factories.createVault(dai, 'yearnVault DAI', 'yvDAI', {'from':user})
+	# tx3 = mock_yearn_vault_factories.createVault(ape, 'yearnVault Ape', 'yvOOH', {'from':user})
 
 	base_uri = 'https://goerli.etherscan.io/address/'
 	print(f'Mock usdc: {base_uri + usdc.address}')
 	print(f'Mock dai: {base_uri + dai.address}')
 	print(f'Mock ape token: {base_uri + ape.address}')
-	print(f'Mock usdc vault: {base_uri + tx1.new_contracts[0]}')
-	print(f'Mock dai vault: {base_uri + tx2.new_contracts[0]}')
-	print(f'Mock ape vault: {base_uri + tx3.new_contracts[0]}')
+	print(f'Mock usdc vault: {base_uri + "0xd0374e274619dc3cf7d13de76104f1f0c73c9d64"}')
+	print(f'Mock dai vault: {base_uri + "0x299d08da3afa3af6d60257e9cea1b20d228d58c8"}')
+	print(f'Mock ape vault: {base_uri + "0x10dd830cc919ce763315692f135fe332355d7ab5"}')

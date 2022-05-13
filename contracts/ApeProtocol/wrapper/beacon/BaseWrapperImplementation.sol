@@ -153,6 +153,7 @@ abstract contract BaseWrapperImplementation {
     using Math for uint256;
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
+    using SafeERC20 for VaultAPI;
 
     IERC20 public token;
 
@@ -351,14 +352,14 @@ abstract contract BaseWrapperImplementation {
                     // NOTE: Avoid corner case where `estimatedShares` isn't precise enough
                     // NOTE: If `0 < estimatedShares < 1` but `availableShares > 1`, this will withdraw more than necessary
                     if (estimatedShares > 0 && estimatedShares < availableShares) {
-                        if (sender != address(this)) vaults[id].transferFrom(sender, address(this), estimatedShares);
+                        if (sender != address(this)) vaults[id].safeTransferFrom(sender, address(this), estimatedShares);
                         withdrawn = withdrawn.add(vaults[id].withdraw(estimatedShares));
                     } else {
-                        if (sender != address(this)) vaults[id].transferFrom(sender, address(this), availableShares);
+                        if (sender != address(this)) vaults[id].safeTransferFrom(sender, address(this), availableShares);
                         withdrawn = withdrawn.add(vaults[id].withdraw(availableShares));
                     }
                 } else {
-                    if (sender != address(this)) vaults[id].transferFrom(sender, address(this), availableShares);
+                    if (sender != address(this)) vaults[id].safeTransferFrom(sender, address(this), availableShares);
                     withdrawn = withdrawn.add(vaults[id].withdraw());
                 }
 

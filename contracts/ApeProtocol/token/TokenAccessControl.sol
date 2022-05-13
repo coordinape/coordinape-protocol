@@ -17,6 +17,11 @@ contract TokenAccessControl is Ownable {
 	event AllowlistedAddressesAdded(address[] minters);
 	event AllowlistedAddressesRemoved(address[] minters);
 
+	event AllowlistDisabled();
+	event PauseStatusChanged(bool status);
+	event PausingDisabledForever();
+	event MintingDisabledForever();
+
 
 	modifier notPaused() {
 		require(!paused || (!allowlistDisabled && allowlistedAddresses[msg.sender]), "AccessControl: User cannot transfer");
@@ -32,11 +37,13 @@ contract TokenAccessControl is Ownable {
 	function disableAllowlist() external onlyOwner {
 		require(!allowlistDisabled, "AccessControl: Allowlist already disabled");
 		allowlistDisabled = true;
+		emit AllowlistDisabled();
 	}
 
 	function changePauseStatus(bool _status) external onlyOwner {
 		require(!foreverUnpaused, "AccessControl: Contract is unpaused forever");
 		paused = _status;
+		emit PauseStatusChanged(_status);
 	}
 
 
@@ -44,6 +51,7 @@ contract TokenAccessControl is Ownable {
 		require(!foreverUnpaused, "AccessControl: Contract is unpaused forever");
 		foreverUnpaused = true;
 		paused = false;
+		emit PausingDisabledForever();
 	}
 
 	function addMinters(address[] calldata _minters) external onlyOwner {
@@ -81,5 +89,6 @@ contract TokenAccessControl is Ownable {
 	function disableMintingForever() external onlyOwner {
 		require(!mintingDisabled, "AccessControl: Contract cannot mint anymore");
 		mintingDisabled = true;
+		emit MintingDisabledForever();
 	}
 }

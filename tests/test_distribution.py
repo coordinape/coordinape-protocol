@@ -42,7 +42,7 @@ def test_root_upload(ape_reg, ape_fee, ape_distro, ape_router_registry_beacon, a
     ape_vault.updateAllowance(circle, token, grant, interval, epochs, 0,{'from':user})
     admin = accounts[1]
     ape_vault.updateCircleAdmin(circle, admin, {'from':user})
-    with reverts('Sender cannot upload a root'):
+    with reverts('ApeDistributor: Sender not approved'):
         ape_distro.uploadEpochRoot(ape_vault, circle, token, root, grant, TAP_BASE, {'from': accounts[2]})
     ape_distro.uploadEpochRoot(ape_vault, circle, token, root, grant, TAP_BASE, {'from': admin})
     assert usdc_vault.balanceOf(ape_distro) == grant
@@ -68,7 +68,7 @@ def test_root_upload_epoch_revert(ape_reg, ape_fee, ape_distro, ape_router_regis
     ape_vault.updateAllowance(circle, token, grant, interval, epochs, int(time.time() + 3600),{'from':user})
     admin = accounts[1]
     ape_vault.updateCircleAdmin(circle, admin, {'from':user})
-    with reverts('Sender cannot upload a root'):
+    with reverts('ApeDistributor: Sender not approved'):
         ape_distro.uploadEpochRoot(ape_vault, circle, token, root, grant, TAP_BASE, {'from': accounts[2]})
     with reverts('Epoch has not started'):
         ape_distro.uploadEpochRoot(ape_vault, circle, token, root, grant, TAP_BASE, {'from': admin})
@@ -96,7 +96,7 @@ def test_allowance_revert(ape_reg, ape_fee, ape_distro, ape_router_registry_beac
     ape_vault.updateAllowance(circle, token, grant, interval, epochs, 0, {'from':user})
     admin = accounts[1]
     ape_vault.updateCircleAdmin(circle, admin, {'from':user})
-    with reverts('Sender cannot upload a root'):
+    with reverts('ApeDistributor: Sender not approved'):
         ape_distro.uploadEpochRoot(ape_vault, circle, token, root, grant, TAP_BASE, {'from': accounts[2]})
     ape_distro.uploadEpochRoot(ape_vault, circle, token, root, grant // 2, TAP_BASE, {'from': admin})
     assert usdc_vault.balanceOf(ape_distro) == grant // 2
@@ -129,7 +129,7 @@ def test_allowance_interval(ape_reg, ape_fee, ape_distro, ape_router_registry_be
     ape_vault.updateAllowance(circle, token, grant, interval, epochs, 0,{'from':user})
     admin = accounts[1]
     ape_vault.updateCircleAdmin(circle, admin, {'from':user})
-    with reverts('Sender cannot upload a root'):
+    with reverts('ApeDistributor: Sender not approved'):
         ape_distro.uploadEpochRoot(ape_vault, circle, token, root, grant, TAP_BASE, {'from': accounts[2]})
     ape_distro.uploadEpochRoot(ape_vault, circle, token, root, grant // 2, TAP_BASE, {'from': admin})
 
@@ -168,7 +168,7 @@ def test_allowance_one_time(ape_reg, ape_fee, ape_distro, ape_router_registry_be
     ape_vault.updateAllowance(circle, token, grant, interval, epochs, 0,{'from':user})
     admin = accounts[1]
     ape_vault.updateCircleAdmin(circle, admin, {'from':user})
-    with reverts('Sender cannot upload a root'):
+    with reverts('ApeDistributor: Sender not approved'):
         ape_distro.uploadEpochRoot(ape_vault, circle, token, root, grant, TAP_BASE, {'from': accounts[2]})
     ape_distro.uploadEpochRoot(ape_vault, circle, token, root, grant // 2, TAP_BASE, {'from': admin})
 
@@ -201,7 +201,7 @@ def test_allowance_start_time_future(ape_reg, ape_fee, ape_distro, ape_router_re
     ape_vault.updateAllowance(circle, token, grant, interval, epochs, start_time,{'from':user})
     admin = accounts[1]
     ape_vault.updateCircleAdmin(circle, admin, {'from':user})
-    with reverts('Sender cannot upload a root'):
+    with reverts('ApeDistributor: Sender not approved'):
         ape_distro.uploadEpochRoot(ape_vault, circle, token, root, grant, TAP_BASE, {'from': accounts[2]})
     with reverts('Epoch has not started'):
         ape_distro.uploadEpochRoot(ape_vault, circle, token, root, grant // 2, TAP_BASE, {'from': admin})
@@ -235,7 +235,7 @@ def test_claiming(ape_reg, ape_fee, ape_distro, ape_router_registry_beacon, ape_
     ape_vault.updateAllowance(circle, token, grant, interval, epochs, 0,{'from':user})
     admin = accounts[1]
     ape_vault.updateCircleAdmin(circle, admin, {'from':user})
-    with reverts('Sender cannot upload a root'):
+    with reverts('ApeDistributor: Sender not approved'):
         ape_distro.uploadEpochRoot(ape_vault, circle, token, root, grant, TAP_BASE, {'from': accounts[2]})
     ape_distro.uploadEpochRoot(ape_vault, circle, token, root, grant, TAP_BASE, {'from': admin})
     file = open('tests/merkle_test.json', 'r')
@@ -283,7 +283,7 @@ def test_claiming_many(ape_reg, ape_fee, ape_distro, ape_router_registry_beacon,
     ape_vault.updateAllowance(circle, token, grant, interval, epochs, 0,{'from':user})
     admin = accounts[1]
     ape_vault.updateCircleAdmin(circle, admin, {'from':user})
-    with reverts('Sender cannot upload a root'):
+    with reverts('ApeDistributor: Sender not approved'):
         ape_distro.uploadEpochRoot(ape_vault, circle, token, root, grant, TAP_BASE, {'from': accounts[2]})
     ape_distro.uploadEpochRoot(ape_vault, circle, token, root, grant, TAP_BASE, {'from': admin})
     file = open('tests/merkle_test.json', 'r')
@@ -346,7 +346,7 @@ def test_allowance_monthly(ape_reg, ape_fee, ape_distro, ape_router_registry_bea
     ape_vault.updateAllowance(circle, token, grant, interval, epochs, 0,{'from':user})
     admin = accounts[1]
     ape_vault.updateCircleAdmin(circle, admin, {'from':user})
-    with reverts('Sender cannot upload a root'):
+    with reverts('ApeDistributor: Sender not approved'):
         ape_distro.uploadEpochRoot(ape_vault, circle, token, root, grant, TAP_BASE, {'from': accounts[2]})
     ape_distro.uploadEpochRoot(ape_vault, circle, token, root, grant, TAP_BASE, {'from': admin})
 

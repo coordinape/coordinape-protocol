@@ -9,21 +9,10 @@ contract COToken is ERC20("coordinape.com", "CO"), TokenAccessControl {
 	uint256 immutable private _cap = 1_000_000_000 ether;
 
 	bytes32 private immutable _PERMIT_TYPEHASH = keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)");
-	bytes32 public DOMAIN_SEPARATOR;
 
 	mapping(address => uint256) public nonces;
 
 	constructor() {
-		uint chainId = block.chainid;
-        DOMAIN_SEPARATOR = keccak256(
-            abi.encode(
-                keccak256('EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)'),
-                keccak256(bytes("coordinape.com")),
-                keccak256(bytes('1')),
-                chainId,
-                address(this)
-            )
-        );
 	}
 
 	function cap() public view virtual returns (uint256) {
@@ -39,6 +28,19 @@ contract COToken is ERC20("coordinape.com", "CO"), TokenAccessControl {
         _mint(_account, _amount);
     }
 
+    function DOMAIN_SEPARATOR() public view returns(bytes32) {
+        uint chainId = block.chainid;
+        return keccak256(
+            abi.encode(
+                keccak256('EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)'),
+                keccak256(bytes("coordinape.com")),
+                keccak256(bytes('1')),
+                chainId,
+                address(this)
+            )
+        );
+    }
+
 	function permit(address owner, address spender, uint256 value, uint256 deadline, uint8 v, bytes32 r, bytes32 s) public {
         require(block.timestamp <= deadline, "COToken: expired deadline");
         require(owner != address(0), "COToken: owner can't be ZERO address ");
@@ -46,7 +48,7 @@ contract COToken is ERC20("coordinape.com", "CO"), TokenAccessControl {
         bytes32 digest = keccak256(
             abi.encode(
 				'\x19\x01',
-                DOMAIN_SEPARATOR,
+                DOMAIN_SEPARATOR(),
                 keccak256(abi.encode(_PERMIT_TYPEHASH, owner, spender, value, nonces[owner]++, deadline))
             )
         );

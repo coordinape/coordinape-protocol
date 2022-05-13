@@ -21,7 +21,7 @@ contract FeeRegistry is TimeLock(0){
 		return _staticFee;
 	}
 
-	function getVariableFee(uint256 _yield, uint256 _tapTotal) external returns(uint256 variableFee) {
+	function getVariableFee(uint256 _yield, uint256 _tapTotal) external view returns(uint256 variableFee) {
 		if (!on)
 			return 0;
 		uint256 yieldRatio = _yield * 1000 / _tapTotal;

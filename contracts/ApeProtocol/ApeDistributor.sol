@@ -146,7 +146,7 @@ contract ApeDistributor is ApeAllowanceModule {
 		_tap(_vault, _circle, _token, _amount, _tapType, bytes32(type(uint256).max));
 
 		for (uint256 i = 0; i < _users.length; i++)
-			IERC20(_token).transfer(_users[i], _amounts[i]);
+			IERC20(_token).safeTransfer(_users[i], _amounts[i]);
 	}
 
 	/**  

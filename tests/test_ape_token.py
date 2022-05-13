@@ -3,8 +3,8 @@ from eth_account.messages import encode_defunct, encode_intended_validator, Sign
 from eth_abi import encode_single
 import web3
 
-def test_pausing(accounts, ApeToken):
-	ape = ApeToken.deploy({'from':accounts[0]})
+def test_pausing(accounts, COToken):
+	ape = COToken.deploy({'from':accounts[0]})
 	ape.addMinters([accounts[0]], {'from':accounts[0]})
 	ape.mint(accounts[0], '10000 ether', {'from':accounts[0]})
 
@@ -21,8 +21,8 @@ def test_pausing(accounts, ApeToken):
 	with reverts('AccessControl: Contract is unpaused forever'):
 		ape.changePauseStatus(False, {'from':accounts[0]})
 
-def test_whitelisting(accounts, ApeToken):
-	ape = ApeToken.deploy({'from':accounts[0]})
+def test_whitelisting(accounts, COToken):
+	ape = COToken.deploy({'from':accounts[0]})
 	ape.addMinters([accounts[0]], {'from':accounts[0]})
 	ape.mint(accounts[0], '10000 ether', {'from':accounts[0]})
 
@@ -30,24 +30,24 @@ def test_whitelisting(accounts, ApeToken):
 	ape.changePauseStatus(True, {'from':accounts[0]})
 	with reverts('AccessControl: User cannot transfer'):
 		ape.transfer(accounts[1], '2 ether', {'from':accounts[0]})
-	ape.addWhitelistedAddresses([accounts[1], accounts[0]], {'from':accounts[0]})
+	ape.addAllowlistedAddresses([accounts[1], accounts[0]], {'from':accounts[0]})
 	ape.transfer(accounts[1], '2 ether', {'from':accounts[0]})
 	ape.transfer(accounts[0], '3 ether', {'from':accounts[1]})
-	ape.removeWhitelistedAddresses([accounts[1], accounts[0]], {'from':accounts[0]})
+	ape.removeAllowlistedAddresses([accounts[1], accounts[0]], {'from':accounts[0]})
 	with reverts('AccessControl: User cannot transfer'):
 		ape.transfer(accounts[1], '2 ether', {'from':accounts[0]})
-	ape.addWhitelistedAddresses([accounts[1], accounts[0]], {'from':accounts[0]})
-	ape.disableWhitelist({'from':accounts[0]})
-	with reverts('AccessControl: Whitelist already disabled'):
-		ape.disableWhitelist({'from':accounts[0]})
+	ape.addAllowlistedAddresses([accounts[1], accounts[0]], {'from':accounts[0]})
+	ape.disableAllowlist({'from':accounts[0]})
+	with reverts('AccessControl: Allowlist already disabled'):
+		ape.disableAllowlist({'from':accounts[0]})
 	with reverts('AccessControl: User cannot transfer'):
 		ape.transfer(accounts[1], '20 ether', {'from':accounts[0]})
 
 
 
 
-def test_minting(accounts, ApeToken):
-	ape = ApeToken.deploy({'from':accounts[0]})
+def test_minting(accounts, COToken):
+	ape = COToken.deploy({'from':accounts[0]})
 
 	with reverts('AccessControl: Cannot mint'):
 		ape.mint(accounts[4], '20 ether', {'from':accounts[1]})
@@ -55,7 +55,7 @@ def test_minting(accounts, ApeToken):
 		ape.addMinters([add.address for add in accounts[1:3]], {'from':accounts[1]})
 	ape.addMinters([add.address for add in accounts[1:3]], {'from':accounts[0]})
 	ape.mint(accounts[4], '20 ether', {'from':accounts[1]})
-	with reverts('ApeToken: cap exceeded'):
+	with reverts('COToken: cap exceeded'):
 		ape.mint(accounts[4], '2_000_000_000 ether', {'from':accounts[1]})
 	ape.mint(accounts[4], '799_999_960 ether', {'from':accounts[1]})
 	ape.mint(accounts[4], '10 ether', {'from':accounts[2]})
@@ -71,10 +71,10 @@ def test_minting(accounts, ApeToken):
 	with reverts('AccessControl: Contract cannot mint tokens anymore'):
 		ape.mint(accounts[4], '1 ether', {'from':accounts[5]})
 
-def test_permit(ApeToken, accounts, web3):
+def test_permit(COToken, accounts, web3):
 	sig_accounts = accounts.from_mnemonic('wink fish soap tattoo riot thumb original surface rough obscure innocent junior', count=10)
 	accounts[0].transfer(to=sig_accounts[0], amount='10 ether')
-	ape = ApeToken.deploy({'from':sig_accounts[0]})
+	ape = COToken.deploy({'from':sig_accounts[0]})
 	ape.addMinters([accounts[0]], {'from':sig_accounts[0]})
 	ape.mint(accounts[0], '10000000 ether', {'from':accounts[0]})
 
@@ -85,13 +85,13 @@ def test_permit(ApeToken, accounts, web3):
 	deadline = 1742042916
 	sig = generate_permit(web3, sig_accounts[0], to, amount, nonce, deadline, ape.DOMAIN_SEPARATOR())
 	ape.permit(_from, to, amount, deadline, sig.v, sig.r, sig.s, {'from':accounts[2]})
-	with reverts("ApeToken: invalid signature"):
+	with reverts("COToken: invalid signature"):
 		ape.permit(_from, to, amount, deadline, sig.v, sig.r, sig.s, {'from':accounts[2]})
 
 	deadline = 10
 	nonce = 1
 	sig = generate_permit(web3, sig_accounts[0], to, amount, nonce, deadline, ape.DOMAIN_SEPARATOR())
-	with reverts("ApeToken: expired deadline"):
+	with reverts("COToken: expired deadline"):
 		ape.permit(_from, to, amount, deadline, sig.v, sig.r, sig.s, {'from':accounts[2]})
 
 def generate_permit(web3, _from, to, amount, nonce, deadline, domain_separator):

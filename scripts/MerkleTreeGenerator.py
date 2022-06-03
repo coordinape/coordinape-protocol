@@ -18,7 +18,7 @@ def main():
     file.close()
 
 def gen():
-    generate_merkle_tree_json('tests/address_rogue.csv', 'tests/amounts_rogue.csv', 'tests/merkle_test_rogue')
+    generate_merkle_tree_json('tests/address.csv', 'tests/amounts.csv', 'tests/merkle_test')
 
 def generate_merkle_tree_json(address_csv, amounts_csv, json_name):
     rows = fetch_data_from_csv(address_csv)
@@ -38,11 +38,13 @@ def generate_leaf(index, account, amount):
 
 def compute_node(h1, h2):
     if h1 <= h2:
-        return web3.soliditySha3(
+        hash = web3.soliditySha3(
             [ 'bytes32' , 'bytes32'], [h1, h2])
     else:
-        return web3.soliditySha3(
+        hash = web3.soliditySha3(
             [ 'bytes32' , 'bytes32'], [h2, h1])
+    print(web3.toHex(h1), web3.toHex(h2), '=>', web3.toHex(hash))
+    return hash
 
 def fetch_data_from_csv(file_name):
     rows = []
@@ -73,12 +75,15 @@ def generate_tree(rows, amount_rows):
     leaves = []
     index = 0
     for row, amount in zip(rows, amount_rows):
-        leaves.append(generate_leaf(index, row[0], amount[0]))
+        leaf_hash = generate_leaf(index, row[0], amount[0])
+        print(index, row[0], amount[0], '=>', web3.toHex(leaf_hash))
+        leaves.append(leaf_hash)
         if row[0] != '0x0000000000000000000000000000000000000000':
             items['claims'].setdefault(row[0], {'index':index, 'amount':amount[0], 'proof':[]})
         index += 1
     level = 0
     while len(leaves) > 1:
+        print(f'level {level}')
         for i in range(len(rows)):
             node = i // (2 ** level)
             node = node + 1 if node % 2 == 0 else node - 1
@@ -91,3 +96,6 @@ def generate_tree(rows, amount_rows):
         leaves = temp
     print(f'final root is {web3.toHex(leaves[0])}')
     return items
+
+print('hello world')
+gen()

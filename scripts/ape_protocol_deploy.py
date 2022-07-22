@@ -38,12 +38,49 @@ def deploy_protocol():
 	ape_reg.transferOwnership(multi_sig, {'from':user})
 	ape_fee.transferOwnership(multi_sig, {'from':user})
 	ape_router.transferOwnership(multi_sig, {'from':user})
-	
+
+def deploy_fresh_protocol_testnet():
+	user = accounts.from_mnemonic('shoe please gift enter social raccoon badge bitter evolve thunder wing joke')
+
+	multi_sig = accounts.from_mnemonic('absurd napkin barrel goose actual beauty volume dish carpet spoon forest scrap', count=1)
+	lock_length = 60 * 60 * 24 * 14 # 14 days
+
+	# mock_yearn_reg = MockRegistry.deploy({'from':user}, publish_source=False)
+	# mock_yearn_vault_factories = MockVaultFactory.deploy(mock_yearn_reg, {'from':user}, publish_source=False)
+	mock_ape_reg = ApeRegistry.deploy(multi_sig, 0, {'from':user}, publish_source=False)
+	mock_vault_imp = ApeVaultWrapperImplementation.deploy({'from':user}, publish_source=False)
+	mock_registry_beacon = ApeRegistryBeacon.deploy(mock_vault_imp, 0,{'from':user}, publish_source=False)
+	mock_yearn_reg = MockRegistry.at('0xa64014AdF0E28a4c3f464e1Ebfccc0edAee0E559')
+	mock_yearn_vault_factories = MockVaultFactory.at('0x5066CF36107E1f9B64A860dBEef3A1ba9E68a971')
+	mock_ape_factory = ApeVaultFactoryBeacon.deploy(mock_yearn_reg, mock_ape_reg, mock_registry_beacon, {'from':user}, publish_source=False)
+	mock_ape_router = ApeRouter.deploy(mock_yearn_reg, mock_ape_factory, 0, {'from':user}, publish_source=False)
+	mock_ape_distro = ApeDistributor.deploy(mock_ape_reg, {'from':user}, publish_source=False)
+	mock_ape_fee = FeeRegistry.deploy({'from':user}, publish_source=False)
+	setup_protocol(mock_ape_reg, mock_ape_fee, mock_ape_distro, mock_ape_router, mock_ape_factory, user)
+    # setup_mockvaults(mock_yearn_vault_factories, user)
+	min_delay_call = mock_ape_reg.changeMinDelay.encode_input(lock_length)
+	mock_ape_reg.schedule(mock_ape_reg, min_delay_call, '', '', 0, {'from':user})
+	mock_ape_fee.schedule(mock_ape_fee, min_delay_call, '', '', 0, {'from':user})
+	mock_ape_router.schedule(mock_ape_router, min_delay_call, '', '', 0, {'from':user})
+	mock_ape_reg.execute(mock_ape_reg, min_delay_call, '', '', 0, {'from':user})
+	mock_ape_fee.execute(mock_ape_fee, min_delay_call, '', '', 0, {'from':user})
+	mock_ape_router.execute(mock_ape_router, min_delay_call, '', '', 0, {'from':user})
+	mock_ape_reg.transferOwnership(multi_sig, {'from':user})
+	mock_ape_fee.transferOwnership(multi_sig, {'from':user})
+	mock_ape_router.transferOwnership(multi_sig, {'from':user})
+	base_uri = 'https://goerli.etherscan.io/address/'
+	print(f'Mock yearn reg: {base_uri + mock_yearn_reg.address}')
+	print(f'Mock yearn Vault factory: {base_uri + mock_yearn_vault_factories.address}')
+	print(f'Mock ape reg: {base_uri + mock_ape_reg.address}')
+	print(f'Mock ape factory: {base_uri + mock_ape_factory.address}')
+	print(f'Mock ape router: {base_uri + mock_ape_router.address}')
+	print(f'Mock ape distro: {base_uri + mock_ape_distro.address}')
+	print(f'Mock ape fee: {base_uri + mock_ape_fee.address}')
 
 def deploy_protocol_testnet():
 	user = accounts.load('moist', '\0')
 	# user = accounts[0]
-	
+
 	multi_sig = accounts.from_mnemonic('absurd napkin barrel goose actual beauty volume dish carpet spoon forest scrap', count=1)
 	lock_length = 60 * 60 * 24 * 14 # 14 days
 
@@ -54,17 +91,17 @@ def deploy_protocol_testnet():
 	# mock_registry_beacon = ApeRegistryBeacon.deploy(mock_vault_imp, 0,{'from':user}, publish_source=True)
 	mock_yearn_reg = MockRegistry.at('0xe8a0721aF820630398994127C5592d41bB939689')
 	mock_yearn_vault_factories = MockVaultFactory.at('0xf968AF55F713BA8284f24c37de8636529b3F9425')
-	mock_ape_reg = ApeRegistry.at('0x679FE7F8D263B738953151affF97F3af51E0A126')
-	mock_vault_imp = ApeVaultWrapperImplementation.at('0xB4F0834b552c473A39EE6Ae7058E6735d95F856D')
-	mock_registry_beacon = ApeRegistryBeacon.at('0xC1AB48d19B63d0330f71d423bEEacdB2104D3DaF')
+	mock_ape_reg = ApeRegistry.at('0xF2bbE9Ac416F94B68741458930648527EA91657F')
+	mock_vault_imp = ApeVaultWrapperImplementation.at('0x8960C6e08f3b87Bf84D602f322A88356Db458e18')
+	mock_registry_beacon = ApeRegistryBeacon.at('0x2223C43cBb211133B5Cb7d964a5fD6709072F6c1')
 	# mock_ape_factory = ApeVaultFactoryBeacon.deploy(mock_yearn_reg, mock_ape_reg, mock_registry_beacon, {'from':user}, publish_source=True)
 	# mock_ape_router = ApeRouter.deploy(mock_yearn_reg, mock_ape_factory, 0, {'from':user}, publish_source=True)
 	# mock_ape_distro = ApeDistributor.deploy(mock_ape_reg, {'from':user}, publish_source=True)
 	# mock_ape_fee = FeeRegistry.deploy({'from':user}, publish_source=True)
-	mock_ape_factory = ApeVaultFactoryBeacon.at('0x38034CCECa1A6ce2Bc1cA736D4134AF994154660')
-	mock_ape_router = ApeRouter.at('0x04Ad1e2Af8A4331a6a10D4b7Ae92e983bD5b33C2')
-	mock_ape_distro = ApeDistributor.at('0x1C07320B1588885d3cddacb3e592622dbf9e28e6')
-	mock_ape_fee = FeeRegistry.at('0x5Bd2C39d5CB3344601b2ACF0C36eEf28Bac18068')
+	mock_ape_factory = ApeVaultFactoryBeacon.at('0x3050DC26CC0d2DB8085f049910a5D45EaF89c645')
+	mock_ape_router = ApeRouter.at('0x074941E4E4ba9EBdDe284aF325ed23B75690191B')
+	mock_ape_distro = ApeDistributor.at('0x6Abc75Fb66e5289D306dE428Cf5f6a3a15cE7e98')
+	mock_ape_fee = FeeRegistry.at('0x81f3A59B9e262e27B9c7717e7002d82c2bccDa27')
 	# setup_protocol(mock_ape_reg, mock_ape_fee, mock_ape_distro, mock_ape_router, mock_ape_factory, user)
 	setup_mockvaults(mock_yearn_vault_factories, user)
 	# min_delay_call = mock_ape_reg.changeMinDelay.encode_input(lock_length)

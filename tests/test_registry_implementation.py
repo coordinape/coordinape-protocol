@@ -5,7 +5,7 @@ import web3
 
 def test_normal_implementation(mock_factory_registry_beacon, accounts, ApeVaultWrapperImplementation1):
 	user = accounts[0]
-	tx = mock_factory_registry_beacon.createApeVault({'from':user})
+	tx = mock_factory_registry_beacon.createCoVault({'from':user})
 	imp = ApeVaultWrapperImplementation1.at(tx.new_contracts[0])
 	assert imp.someValue() == 0
 	assert imp.version() == 1
@@ -14,7 +14,7 @@ def test_normal_implementation(mock_factory_registry_beacon, accounts, ApeVaultW
 
 def test_upgrade(mock_factory_registry_beacon, mock_registry_beacon, accounts, ApeVaultWrapperImplementation1, implementation2, implementation3, minter):
 	user = accounts[0]
-	tx = mock_factory_registry_beacon.createApeVault({'from':user})
+	tx = mock_factory_registry_beacon.createCoVault({'from':user})
 	imp = ApeVaultWrapperImplementation1.at(tx.new_contracts[0])
 	imp.write({'from':user})
 	assert imp.someValue() == 11
@@ -37,7 +37,7 @@ def test_opt_out(mock_factory_registry_beacon, mock_registry_beacon, accounts, A
 	user = accounts[0]
 	disc = ApeBeacon.deploy(mock_registry_beacon, user, '0xe1c7392a', {'from':user})
 	pref_call = disc.setBeaconDeploymentPrefs.encode_input(1)
-	tx = mock_factory_registry_beacon.createApeVault({'from':user})
+	tx = mock_factory_registry_beacon.createCoVault({'from':user})
 	imp = ApeVaultWrapperImplementation1.at(tx.new_contracts[0])
 	imp.write({'from':user})
 	assert imp.someValue() == 11
@@ -68,7 +68,7 @@ def test_opt_out_then_opt_in(mock_factory_registry_beacon, mock_registry_beacon,
 	user = accounts[0]
 	disc = ApeBeacon.deploy(mock_registry_beacon, user, '0xe1c7392a', {'from':user})
 	pref_call = disc.setBeaconDeploymentPrefs.encode_input(1)
-	tx = mock_factory_registry_beacon.createApeVault({'from':user})
+	tx = mock_factory_registry_beacon.createCoVault({'from':user})
 	add = tx.new_contracts[0]
 	imp = ApeVaultWrapperImplementation1.at(add)
 	imp.write({'from':user})

@@ -19,7 +19,7 @@ contract MockVaultFactoryBeacon {
 		beacon = _beacon;
 	}
 
-	function createApeVault() external {
+	function createCoVault() external {
 		bytes memory data = abi.encodeWithSignature("init()");
 		ApeBeacon proxy = new ApeBeacon(beacon, msg.sender, data);
 		vaultRegistry[address(proxy)] = true;

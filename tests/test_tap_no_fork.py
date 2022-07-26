@@ -31,7 +31,7 @@ def test_tap_profit(mock_ape_reg, mock_ape_fee, mock_ape_distro, mock_ape_router
     mock_token.approve(mock_ape_router_beacon, 2 ** 256 -1, {'from':user})
     new_vault_tx = mock_yearn_vault_factories.createVault(mock_token, 'yvhello', 'yvh',{'from':user})
     vault = MockVault.at(new_vault_tx.new_contracts[0])
-    tx = mock_ape_factory_beacon.createApeVault(mock_token, '0x0000000000000000000000000000000000000000', {'from':user})
+    tx = mock_ape_factory_beacon.createCoVault(mock_token, '0x0000000000000000000000000000000000000000', {'from':user})
     ape_vault = ApeVaultWrapperImplementation.at(tx.new_contracts[0])
     mock_ape_router_beacon.delegateDeposit(ape_vault, mock_token, amount, {'from':user})
     assert vault.balanceOf(ape_vault) >= amount
@@ -65,7 +65,7 @@ def test_expected_profit_revert(mock_ape_reg, mock_ape_fee, mock_ape_distro, moc
     mock_token.approve(mock_ape_router_beacon, 2 ** 256 -1, {'from':user})
     new_vault_tx = mock_yearn_vault_factories.createVault(mock_token, 'yvhello', 'yvh',{'from':user})
     vault = MockVault.at(new_vault_tx.new_contracts[0])
-    tx = mock_ape_factory_beacon.createApeVault(mock_token, '0x0000000000000000000000000000000000000000', {'from':user})
+    tx = mock_ape_factory_beacon.createCoVault(mock_token, '0x0000000000000000000000000000000000000000', {'from':user})
     ape_vault = ApeVaultWrapperImplementation.at(tx.new_contracts[0])
     mock_ape_router_beacon.delegateDeposit(ape_vault, mock_token, amount, {'from':user})
     assert vault.balanceOf(ape_vault) >= amount
@@ -97,7 +97,7 @@ def test_bad_harvest_reset_value(mock_ape_reg, mock_ape_fee, mock_ape_distro, mo
     mock_token.approve(mock_ape_router_beacon, 2 ** 256 -1, {'from':user})
     new_vault_tx = mock_yearn_vault_factories.createVault(mock_token, 'yvhello', 'yvh',{'from':user})
     vault = MockVault.at(new_vault_tx.new_contracts[0])
-    tx = mock_ape_factory_beacon.createApeVault(mock_token, '0x0000000000000000000000000000000000000000', {'from':user})
+    tx = mock_ape_factory_beacon.createCoVault(mock_token, '0x0000000000000000000000000000000000000000', {'from':user})
     ape_vault = ApeVaultWrapperImplementation.at(tx.new_contracts[0])
     mock_ape_router_beacon.delegateDeposit(ape_vault, mock_token, amount, {'from':user})
     assert vault.balanceOf(ape_vault) == amount

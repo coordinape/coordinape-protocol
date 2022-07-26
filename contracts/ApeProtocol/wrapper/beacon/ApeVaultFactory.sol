@@ -19,7 +19,7 @@ contract ApeVaultFactoryBeacon {
 		beacon = _beacon;
 	}
 
-	function createApeVault(address _token, address _simpleToken) external {
+	function createCoVault(address _token, address _simpleToken) external {
 		bytes memory data = abi.encodeWithSignature("init(address,address,address,address,address)", apeRegistry, _token, yearnRegistry, _simpleToken, msg.sender);
 		ApeBeacon proxy = new ApeBeacon(beacon, msg.sender, data);
 		vaultRegistry[address(proxy)] = true;

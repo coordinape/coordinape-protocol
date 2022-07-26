@@ -24,7 +24,7 @@ def setup_protocol(ape_reg, ape_fee, ape_distro, ape_router_registry_beacon, ape
 def test_vault_creation(ape_reg, ape_fee, ape_distro, ape_router_registry_beacon, ape_factory_registry_beacon, big_usdc, usdc, ApeVaultWrapperImplementation, minter):
     setup_protocol(ape_reg, ape_fee, ape_distro, ape_router_registry_beacon, ape_factory_registry_beacon, minter)
     user = accounts[0]
-    tx = ape_factory_registry_beacon.createApeVault(usdc, '0x0000000000000000000000000000000000000000', {'from':user})
+    tx = ape_factory_registry_beacon.createCoVault(usdc, '0x0000000000000000000000000000000000000000', {'from':user})
     ape_vault = ApeVaultWrapperImplementation.at(tx.new_contracts[0])
     assert ape_vault.owner() == user
     assert ape_vault.token() == usdc
@@ -37,7 +37,7 @@ def test_router(ape_reg, ape_fee, ape_distro, ape_router_registry_beacon, ape_fa
     amount = 1_000_000_000_000
     usdc.transfer(user, amount, {'from':big_usdc})
     usdc.approve(ape_router_registry_beacon, 2 ** 256 -1, {'from':user})
-    tx = ape_factory_registry_beacon.createApeVault(usdc, '0x0000000000000000000000000000000000000000', {'from':user})
+    tx = ape_factory_registry_beacon.createCoVault(usdc, '0x0000000000000000000000000000000000000000', {'from':user})
     ape_vault = ApeVaultWrapperImplementation.at(tx.new_contracts[0])
     assert ape_vault.owner() == user
     assert ape_vault.token() == usdc
@@ -60,7 +60,7 @@ def test_vault_exit(ape_reg, ape_fee, ape_distro, ape_router_registry_beacon, ap
     amount = 1_000_000_000_000
     usdc.transfer(user, amount, {'from':big_usdc})
     usdc.approve(ape_router_registry_beacon, 2 ** 256 -1, {'from':user})
-    tx = ape_factory_registry_beacon.createApeVault(usdc, '0x0000000000000000000000000000000000000000', {'from':user})
+    tx = ape_factory_registry_beacon.createCoVault(usdc, '0x0000000000000000000000000000000000000000', {'from':user})
     ape_vault = ApeVaultWrapperImplementation.at(tx.new_contracts[0])
     usdc_vault = interface.IERC20('0xa354F35829Ae975e850e23e9615b11Da1B3dC4DE')
     ape_router_registry_beacon.delegateDeposit(ape_vault, usdc, amount, {'from':user})
@@ -74,7 +74,7 @@ def test_vault_exit_underlying(ape_reg, ape_fee, ape_distro, ape_router_registry
     amount = 1_000_000_000_000
     usdc.transfer(user, amount, {'from':big_usdc})
     usdc.approve(ape_router_registry_beacon, 2 ** 256 -1, {'from':user})
-    tx = ape_factory_registry_beacon.createApeVault(usdc, '0x0000000000000000000000000000000000000000', {'from':user})
+    tx = ape_factory_registry_beacon.createCoVault(usdc, '0x0000000000000000000000000000000000000000', {'from':user})
     ape_vault = ApeVaultWrapperImplementation.at(tx.new_contracts[0])
     usdc_vault = interface.IERC20('0xa354F35829Ae975e850e23e9615b11Da1B3dC4DE')
     ape_router_registry_beacon.delegateDeposit(ape_vault, usdc, amount, {'from':user})
@@ -89,7 +89,7 @@ def test_vault_withdraw_underlying(ape_reg, ape_fee, ape_distro, ape_router_regi
     amount = 1_000_000_000_000
     usdc.transfer(user, amount, {'from':big_usdc})
     usdc.approve(ape_router_registry_beacon, 2 ** 256 -1, {'from':user})
-    tx = ape_factory_registry_beacon.createApeVault(usdc, '0x0000000000000000000000000000000000000000', {'from':user})
+    tx = ape_factory_registry_beacon.createCoVault(usdc, '0x0000000000000000000000000000000000000000', {'from':user})
     ape_vault = ApeVaultWrapperImplementation.at(tx.new_contracts[0])
     usdc_vault = interface.IERC20('0xa354F35829Ae975e850e23e9615b11Da1B3dC4DE')
     ape_router_registry_beacon.delegateDeposit(ape_vault, usdc, amount, {'from':user})
@@ -104,7 +104,7 @@ def test_vault_withdraw(ape_reg, ape_fee, ape_distro, ape_router_registry_beacon
     amount = 1_000_000_000_000
     usdc.transfer(user, amount, {'from':big_usdc})
     usdc.approve(ape_router_registry_beacon, 2 ** 256 -1, {'from':user})
-    tx = ape_factory_registry_beacon.createApeVault(usdc, '0x0000000000000000000000000000000000000000', {'from':user})
+    tx = ape_factory_registry_beacon.createCoVault(usdc, '0x0000000000000000000000000000000000000000', {'from':user})
     ape_vault = ApeVaultWrapperImplementation.at(tx.new_contracts[0])
     usdc_vault = interface.IERC20('0xa354F35829Ae975e850e23e9615b11Da1B3dC4DE')
     ape_router_registry_beacon.delegateDeposit(ape_vault, usdc, amount, {'from':user})
@@ -124,7 +124,7 @@ def test_circle_allowance(ape_reg, ape_fee, ape_distro, ape_router_registry_beac
     amount = 20_000_000_000
     interval = 60 * 60 * 14 # 14 days
     epochs = 4
-    tx = ape_factory_registry_beacon.createApeVault(usdc, '0x0000000000000000000000000000000000000000', {'from':user})
+    tx = ape_factory_registry_beacon.createCoVault(usdc, '0x0000000000000000000000000000000000000000', {'from':user})
     ape_vault = ApeVaultWrapperImplementation.at(tx.new_contracts[0])
     ape_vault.updateAllowance(circle, usdc, 20_000_000_000, interval, epochs, 0,{'from':user})
     (debt, intervalStart, epochs) = ape_distro.currentAllowances(ape_vault, circle, token)
@@ -134,7 +134,7 @@ def test_circle_allowance(ape_reg, ape_fee, ape_distro, ape_router_registry_beac
 def test_vault_circle_admin(ape_reg, ape_fee, ape_distro, ape_router_registry_beacon, ape_factory_registry_beacon, big_usdc, usdc, ApeVaultWrapperImplementation, minter, interface):
     setup_protocol(ape_reg, ape_fee, ape_distro, ape_router_registry_beacon, ape_factory_registry_beacon, minter)
     user = accounts[0]
-    tx = ape_factory_registry_beacon.createApeVault(usdc, '0x0000000000000000000000000000000000000000', {'from':user})
+    tx = ape_factory_registry_beacon.createCoVault(usdc, '0x0000000000000000000000000000000000000000', {'from':user})
     ape_vault = ApeVaultWrapperImplementation.at(tx.new_contracts[0])
     circle = '0x1'
     ape_vault.updateCircleAdmin(circle, user, {'from':user})
@@ -145,7 +145,7 @@ def test_vault_circle_admin(ape_reg, ape_fee, ape_distro, ape_router_registry_be
 def test_tap_revert(ape_reg, ape_fee, ape_distro, ape_router_registry_beacon, ape_factory_registry_beacon, big_usdc, usdc, ApeVaultWrapperImplementation, minter, interface):
     setup_protocol(ape_reg, ape_fee, ape_distro, ape_router_registry_beacon, ape_factory_registry_beacon, minter)
     user = accounts[0]
-    tx = ape_factory_registry_beacon.createApeVault(usdc, '0x0000000000000000000000000000000000000000', {'from':user})
+    tx = ape_factory_registry_beacon.createCoVault(usdc, '0x0000000000000000000000000000000000000000', {'from':user})
     ape_vault = ApeVaultWrapperImplementation.at(tx.new_contracts[0])
     circle = '0x1'
     with reverts(''):

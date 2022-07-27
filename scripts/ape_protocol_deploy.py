@@ -1,4 +1,5 @@
 from brownie import accounts, Wei, chain, ApeRegistryBeacon, ApeVaultWrapperImplementation, ApeVaultFactoryBeacon, ApeDistributor, ApeRegistry, ApeRouter, FeeRegistry, MockRegistry, MockVaultFactory, MockToken, MockVault
+import json
 
 
 def deploy_token():
@@ -76,6 +77,18 @@ def deploy_fresh_protocol_testnet():
 	print(f'Mock ape router: {base_uri + mock_ape_router.address}')
 	print(f'Mock ape distro: {base_uri + mock_ape_distro.address}')
 	print(f'Mock ape fee: {base_uri + mock_ape_fee.address}')
+	testnet_deployInfo = {
+	"ApeDistributor": {"address": mock_ape_distro.address},
+	"ApeRegistry": {"address": mock_ape_reg.address},
+	"ApeRegistryBeacon": {"address": mock_registry_beacon.address},
+	"ApeRouter": {"address": mock_ape_router.address},
+	"ApeVaultFactoryBeacon": {"address": mock_ape_factory.address},
+	"ApeVaultWrapperImplementation": {"address": mock_vault_imp.address},
+	"FeeRegistry": {"address": mock_ape_fee.address},
+	"MockRegistry": {"address": mock_yearn_reg.address},
+	"MockVaultFactory": {"address": mock_yearn_vault_factories.address}
+}
+	print(json.dumps(testnet_deployInfo, indent=2))
 
 def deploy_protocol_testnet():
 	user = accounts.load('moist', '\0')

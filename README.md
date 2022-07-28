@@ -88,17 +88,18 @@ Master Parameters:
 ## Deployment instructions
 
 1. install brownie in a python virtualenv. pyenv and pyenv-virtualenv are recommended. Activate the virtualenv.
-2. Transfer some goeth to 0x16DD8bAa84ABDdB40292D2818d436842D08451AC.
-3. Set a provider in the CLI e.g. `brownie networks set_provider alchemy`
-4. Set an alchemy or infura project id in your environment:
+2. Install brownie using pip inside your virtualenv: https://eth-brownie.readthedocs.io/en/stable/install.html#other-installation-methods
+3. Transfer some goeth to 0x16DD8bAa84ABDdB40292D2818d436842D08451AC.
+4. Set a provider in the CLI e.g. `brownie networks set_provider alchemy`
+5. Set an alchemy or infura project id in your environment:
    `export WEB3_ALCHEMY_PROJECT_ID=abcd1234`
-5. Run `brownie console --network goerli`. You'll get errors here if you missed
+6. Run `brownie console --network goerli`. You'll get errors here if you missed
    a network config step above.
-6. In the brownie console, execute:
+7. In the brownie console, execute:
     ```sh
     run('ape_protocol_deploy','deploy_fresh_protocol_testnet')
     ```
-7. Brownie scripts seem to be pretty flaky sometimes, so you might need to
+8. Brownie scripts seem to be pretty flaky sometimes, so you might need to
    comment out previously executed parts and update the scripts to reflect
    partially deployed state before running again.
 

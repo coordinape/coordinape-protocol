@@ -2,7 +2,7 @@
 pragma solidity ^0.8.2;
 
 import "./MockVault.sol";
-import "../ApeBeacon.sol";
+import "../VaultProxy.sol";
 
 contract MockVaultFactoryBeacon {
 	mapping(address => bool) public vaultRegistry;
@@ -21,7 +21,7 @@ contract MockVaultFactoryBeacon {
 
 	function createCoVault() external {
 		bytes memory data = abi.encodeWithSignature("init()");
-		ApeBeacon proxy = new ApeBeacon(beacon, msg.sender, data);
+		VaultProxy proxy = new VaultProxy(beacon, msg.sender, data);
 		vaultRegistry[address(proxy)] = true;
 		emit VaultCreated(address(proxy));
 	}

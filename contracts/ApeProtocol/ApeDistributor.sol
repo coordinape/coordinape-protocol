@@ -65,7 +65,7 @@ contract ApeDistributor is ApeAllowanceModule {
 		uint8 _tapType,
 		bytes32 _root
 	) internal {
-		require(ApeVaultFactoryBeacon(ApeRegistry(registry).factory()).vaultRegistry(_vault), "ApeDistributor: Vault does not exist");
+		require(ApeVaultFactory(ApeRegistry(registry).factory()).vaultRegistry(_vault), "ApeDistributor: Vault does not exist");
 		bool isOwner = ApeVaultWrapperImplementation(_vault).owner() == msg.sender;
 		require(vaultApprovals[_vault][_circle] == msg.sender || isOwner, "ApeDistributor: Sender not approved");
 		

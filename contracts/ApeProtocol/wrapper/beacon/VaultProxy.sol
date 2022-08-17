@@ -2,9 +2,9 @@
 pragma solidity ^0.8.2;
 
 import "@openzeppelin/contracts/proxy/beacon/BeaconProxy.sol";
-import "./ApeRegistryBeacon.sol";
+import "./VaultBeacon.sol";
 
-contract ApeBeacon is BeaconProxy {
+contract VaultProxy is BeaconProxy {
 	bytes32 private constant _OWNER_SLOT = 0xa7b53796fd2d99cb1f5ae019b54f9e024446c3d12b483f733ccc62ed04eb126a;
 
 	event ProxyOwnershipTransferred(address newOwner);
@@ -32,6 +32,6 @@ contract ApeBeacon is BeaconProxy {
 
 	function setBeaconDeploymentPrefs(uint256 _value) external {
 		require(msg.sender == proxyOwner());
-		ApeRegistryBeacon(_beacon()).setDeploymentPrefs(_value);
+		VaultBeacon(_beacon()).setDeploymentPrefs(_value);
 	}
 }

@@ -5,7 +5,7 @@ import "@openzeppelin/contracts/proxy/beacon/UpgradeableBeacon.sol";
 import "@openzeppelin/contracts/proxy/beacon/IBeacon.sol";
 import "../../TimeLock.sol";
 
-contract ApeRegistryBeacon is TimeLock {
+contract VaultBeacon is TimeLock {
 
 	mapping(uint256 => address) public deployments;
 	uint256 public deploymentCount;
@@ -15,7 +15,7 @@ contract ApeRegistryBeacon is TimeLock {
 	event NewImplementationPushed(address newImplementation);
 
 	constructor(address _apeVault, uint256 _minDelay) TimeLock(_minDelay) {
-		require(Address.isContract(_apeVault), "ApeRegistryBeacon: implementaion is not a contract");
+		require(Address.isContract(_apeVault), "VaultBeacon: implementation is not a contract");
 		deployments[++deploymentCount] = _apeVault;
 	}
 
@@ -37,7 +37,7 @@ contract ApeRegistryBeacon is TimeLock {
 	}
 
 	function pushNewImplementation(address _newImplementation) public itself {
-		require(Address.isContract(_newImplementation), "ApeRegistryBeacon: implementaion is not a contract");
+		require(Address.isContract(_newImplementation), "VaultBeacon: implementaion is not a contract");
 		deployments[++deploymentCount] = _newImplementation;
 		emit NewImplementationPushed(_newImplementation);
 	}

@@ -1,5 +1,8 @@
 networks:
     default: development
+    development:
+        cmd_settings:
+            fork: ${ETHEREUM_RPC_URL}@14000000
 
 dependencies:
     - OpenZeppelin/openzeppelin-contracts@4.0.0-rc.0
@@ -23,3 +26,4 @@ reports:
         - Counters
 
 autofetch_sources: true
+dotenv: .env

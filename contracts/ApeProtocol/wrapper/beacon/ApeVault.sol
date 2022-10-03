@@ -230,7 +230,7 @@ contract ApeVaultWrapperImplementation is BaseWrapperImplementation, OwnableImpl
 	function _tapSimpleToken(uint256 _tapValue, address _recipient) internal {
 		uint256 feeAmount = _tapValue * FeeRegistry(ApeRegistry(apeRegistry).feeRegistry()).staticFee() / TOTAL_SHARES;
 		simpleToken.safeTransfer(_recipient, _tapValue);
-		simpleToken.safeTransfer(ApeRegistry(apeRegistry).treasury(), feeAmount);
+		if (feeAmount > 0) simpleToken.safeTransfer(ApeRegistry(apeRegistry).treasury(), feeAmount);
 	}
 
 	/**  

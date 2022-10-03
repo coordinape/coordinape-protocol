@@ -38,12 +38,12 @@ def implementation(ApeVaultWrapperImplementation, minter):
     return ApeVaultWrapperImplementation.deploy({'from':minter})
 
 @pytest.fixture()
-def registry_beacon(ApeRegistryBeacon, minter, implementation):
-    return ApeRegistryBeacon.deploy(implementation, 0, {'from':minter})
+def registry_beacon(VaultBeacon, minter, implementation):
+    return VaultBeacon.deploy(implementation, 0, {'from':minter})
 
 @pytest.fixture()
-def ape_factory_registry_beacon(ApeVaultFactoryBeacon, ape_reg, yearn_reg, minter, registry_beacon):
-    return ApeVaultFactoryBeacon.deploy(yearn_reg, ape_reg, registry_beacon, {'from':minter})
+def ape_factory_registry_beacon(ApeVaultFactory, ape_reg, yearn_reg, minter, registry_beacon):
+    return ApeVaultFactory.deploy(yearn_reg, ape_reg, registry_beacon, {'from':minter})
 
 @pytest.fixture()
 def ape_router_registry_beacon(ApeRouter, yearn_reg, ape_factory_registry_beacon, minter):
@@ -62,8 +62,8 @@ def mock_ape_reg(ApeRegistry, minter):
     return ApeRegistry.deploy(minter, 0, {'from':minter})
 
 @pytest.fixture()
-def mock_ape_factory_beacon(ApeVaultFactoryBeacon, mock_ape_reg, mock_yearn_reg, minter, registry_beacon):
-    return ApeVaultFactoryBeacon.deploy(mock_yearn_reg, mock_ape_reg, registry_beacon, {'from':minter})
+def mock_ape_factory_beacon(ApeVaultFactory, mock_ape_reg, mock_yearn_reg, minter, registry_beacon):
+    return ApeVaultFactory.deploy(mock_yearn_reg, mock_ape_reg, registry_beacon, {'from':minter})
 
 @pytest.fixture()
 def mock_ape_router_beacon(ApeRouter, mock_yearn_reg, mock_ape_factory_beacon, minter):
@@ -91,8 +91,8 @@ def implementation3(ApeVaultWrapperImplementation3, minter):
     return ApeVaultWrapperImplementation3.deploy({'from':minter})
 
 @pytest.fixture()
-def mock_registry_beacon(ApeRegistryBeacon, minter, implementation1):
-    return ApeRegistryBeacon.deploy(implementation1, 0, {'from':minter})
+def mock_registry_beacon(VaultBeacon, minter, implementation1):
+    return VaultBeacon.deploy(implementation1, 0, {'from':minter})
 
 @pytest.fixture()
 def mock_factory_registry_beacon(MockVaultFactoryBeacon, ape_reg, yearn_reg, minter, mock_registry_beacon):

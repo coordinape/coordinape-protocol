@@ -1,4 +1,4 @@
-from brownie import accounts, Wei, chain, ApeRegistryBeacon, ApeVaultWrapperImplementation, ApeVaultFactoryBeacon, ApeDistributor, ApeRegistry, ApeRouter, FeeRegistry, MockRegistry, MockVaultFactory, MockToken, MockVault
+from brownie import accounts, Wei, chain, VaultBeacon, ApeVaultWrapperImplementation, ApeVaultFactory, ApeDistributor, ApeRegistry, ApeRouter, FeeRegistry, MockRegistry, MockVaultFactory, MockToken, MockVault
 
 
 def deploy_token():
@@ -23,7 +23,7 @@ def deploy_protocol():
 
 	yearn_reg = '0x50c1a2ea0a861a967d9d0ffe2ae4012c2e053804'
 	ape_reg = ApeRegistry.deploy(0, {'from':user}, publish_source=True)
-	ape_factory = ApeVaultFactoryBeacon.deploy(yearn_reg, ape_reg, {'from':user}, publish_source=True)
+	ape_factory = ApeVaultFactory.deploy(yearn_reg, ape_reg, {'from':user}, publish_source=True)
 	ape_router = ApeRouter.deploy(yearn_reg, ape_factory, 0, {'from':user}, publish_source=True)
 	ape_distro = ApeDistributor.deploy({'from':user}, publish_source=True)
 	ape_fee = FeeRegistry.deploy({'from':user}, publish_source=True)
@@ -51,17 +51,17 @@ def deploy_protocol_testnet():
 	# mock_yearn_vault_factories = MockVaultFactory.deploy(mock_yearn_reg, {'from':user}, publish_source=True)
 	# mock_ape_reg = ApeRegistry.deploy(multi_sig, 0, {'from':user}, publish_source=True)
 	# mock_vault_imp = ApeVaultWrapperImplementation.deploy({'from':user}, publish_source=True)
-	# mock_registry_beacon = ApeRegistryBeacon.deploy(mock_vault_imp, 0,{'from':user}, publish_source=True)
+	# mock_registry_beacon = VaultBeacon.deploy(mock_vault_imp, 0,{'from':user}, publish_source=True)
 	mock_yearn_reg = MockRegistry.at('0xe8a0721aF820630398994127C5592d41bB939689')
 	mock_yearn_vault_factories = MockVaultFactory.at('0xf968AF55F713BA8284f24c37de8636529b3F9425')
 	mock_ape_reg = ApeRegistry.at('0x679FE7F8D263B738953151affF97F3af51E0A126')
 	mock_vault_imp = ApeVaultWrapperImplementation.at('0xB4F0834b552c473A39EE6Ae7058E6735d95F856D')
-	mock_registry_beacon = ApeRegistryBeacon.at('0xC1AB48d19B63d0330f71d423bEEacdB2104D3DaF')
-	# mock_ape_factory = ApeVaultFactoryBeacon.deploy(mock_yearn_reg, mock_ape_reg, mock_registry_beacon, {'from':user}, publish_source=True)
+	mock_registry_beacon = VaultBeacon.at('0xC1AB48d19B63d0330f71d423bEEacdB2104D3DaF')
+	# mock_ape_factory = ApeVaultFactory.deploy(mock_yearn_reg, mock_ape_reg, mock_registry_beacon, {'from':user}, publish_source=True)
 	# mock_ape_router = ApeRouter.deploy(mock_yearn_reg, mock_ape_factory, 0, {'from':user}, publish_source=True)
 	# mock_ape_distro = ApeDistributor.deploy(mock_ape_reg, {'from':user}, publish_source=True)
 	# mock_ape_fee = FeeRegistry.deploy({'from':user}, publish_source=True)
-	mock_ape_factory = ApeVaultFactoryBeacon.at('0x38034CCECa1A6ce2Bc1cA736D4134AF994154660')
+	mock_ape_factory = ApeVaultFactory.at('0x38034CCECa1A6ce2Bc1cA736D4134AF994154660')
 	mock_ape_router = ApeRouter.at('0x04Ad1e2Af8A4331a6a10D4b7Ae92e983bD5b33C2')
 	mock_ape_distro = ApeDistributor.at('0x1C07320B1588885d3cddacb3e592622dbf9e28e6')
 	mock_ape_fee = FeeRegistry.at('0x5Bd2C39d5CB3344601b2ACF0C36eEf28Bac18068')

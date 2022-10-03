@@ -33,9 +33,9 @@ def test_upgrade(mock_factory_registry_beacon, mock_registry_beacon, accounts, A
 	imp.write({'from':user})
 	assert imp.someValue() == 33
 
-def test_opt_out(mock_factory_registry_beacon, mock_registry_beacon, accounts, ApeVaultWrapperImplementation1, ApeBeacon, implementation2, implementation3, minter):
+def test_opt_out(mock_factory_registry_beacon, mock_registry_beacon, accounts, ApeVaultWrapperImplementation1, VaultProxy, implementation2, implementation3, minter):
 	user = accounts[0]
-	disc = ApeBeacon.deploy(mock_registry_beacon, user, '0xe1c7392a', {'from':user})
+	disc = VaultProxy.deploy(mock_registry_beacon, user, '0xe1c7392a', {'from':user})
 	pref_call = disc.setBeaconDeploymentPrefs.encode_input(1)
 	tx = mock_factory_registry_beacon.createCoVault({'from':user})
 	imp = ApeVaultWrapperImplementation1.at(tx.new_contracts[0])
@@ -64,9 +64,9 @@ def test_opt_out(mock_factory_registry_beacon, mock_registry_beacon, accounts, A
 	imp.write({'from':user})
 	assert imp.someValue() == 33
 
-def test_opt_out_then_opt_in(mock_factory_registry_beacon, mock_registry_beacon, accounts, ApeVaultWrapperImplementation1, ApeBeacon, implementation2, implementation3, minter):
+def test_opt_out_then_opt_in(mock_factory_registry_beacon, mock_registry_beacon, accounts, ApeVaultWrapperImplementation1, VaultProxy, implementation2, implementation3, minter):
 	user = accounts[0]
-	disc = ApeBeacon.deploy(mock_registry_beacon, user, '0xe1c7392a', {'from':user})
+	disc = VaultProxy.deploy(mock_registry_beacon, user, '0xe1c7392a', {'from':user})
 	pref_call = disc.setBeaconDeploymentPrefs.encode_input(1)
 	tx = mock_factory_registry_beacon.createCoVault({'from':user})
 	add = tx.new_contracts[0]

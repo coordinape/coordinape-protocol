@@ -87,7 +87,9 @@ contract CoSoul is ERC721("CoSoul", "Soul"), Ownable {
 		require(_slot < 8);
 
 		uint256 current = blobs[_tokenId];
-		uint256 mask = ~(0xffffffff << _slot);
+		// get the inverse of the slot mask 
+		uint256 inverseMask = ~(0xffffffff << _slot);
+		// filter current blob with inverse mask to remove the current slot and update it (OR operation) to add slot
 		blobs[_tokenId] = (current & mask) | (_amount << _slot);
 	}
 

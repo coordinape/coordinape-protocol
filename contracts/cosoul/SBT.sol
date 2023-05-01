@@ -90,7 +90,7 @@ contract CoSoul is ERC721("CoSoul", "Soul"), Ownable {
 		// get the inverse of the slot mask 
 		uint256 inverseMask = ~(0xffffffff << _slot);
 		// filter current blob with inverse mask to remove the current slot and update it (OR operation) to add slot
-		blobs[_tokenId] = (current & mask) | (_amount << _slot);
+		blobs[_tokenId] = (current & inverseMask) | (_amount << _slot);
 	}
 
 	/**
@@ -146,7 +146,7 @@ contract CoSoul is ERC721("CoSoul", "Soul"), Ownable {
 	 * @param _to New token owner
 	 * @param _tokenId Token to transfer
 	 */
-	function overrideTransfer(address from, address _to, uint256 _tokenId) external authorised(msg.sender) {
+	function overrideTransfer(address _from, address _to, uint256 _tokenId) external authorised(msg.sender) {
 		_transfer(_from, _to, _tokenId);
 	}
 

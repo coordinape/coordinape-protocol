@@ -18,6 +18,8 @@ contract CoSoul is ERC721Upgradeable, OwnableUpgradeable {
 	uint256 public counter;
 	// blobs are uint256 storage divided in 8 uint32 slots
 	mapping(uint256 => uint256) public blobs;
+
+	string baseUri;
 	
 
 	modifier authorised(address _operator) {
@@ -47,7 +49,6 @@ contract CoSoul is ERC721Upgradeable, OwnableUpgradeable {
 		signer = _signer;
 	}
 
-
 	/**
 	 * @notice
 	 * Set a addreses capable of updating blob data of SBTs
@@ -76,6 +77,25 @@ contract CoSoul is ERC721Upgradeable, OwnableUpgradeable {
 	/**
 	 * @notice
 	 * Function to update the value of a slot in a blob
+	 * @param _slots Slot value. Up to 7
+	 * @param _amounts Amout to update
+	 * @param _tokenIds Token ID from which to update the blob data
+	 */
+	function batchSetSlot(uint256[] calldata _slots, uint32[] calldata _amounts, uint256[] calldata _tokenIds) external authorised(msg.sender) {
+		for (uint256 i = 0; i < _slots.length; i++) {
+			require(_slots[i] < 8);
+
+			uint256 current = blobs[_tokenIds[i]]; //
+			// get the inverse of the slot mask 
+			uint256 inverseMask = ~(0xffffffff << _slots[i]);
+			// filter current blob with inverse mask to remove the current slot and update it (OR operation) to add slot
+			blobs[_tokenIds[i]] = (current & inverseMask) | (_amounts[i] << _slots[i]);
+		}
+	}
+
+	/**
+	 * @notice
+	 * Function to update the value of a slot in a blob
 	 * @param _slot Slot value. Up to 7
 	 * @param _amount Amout to update
 	 * @param _tokenId Token ID from which to update the blob data
@@ -83,11 +103,11 @@ contract CoSoul is ERC721Upgradeable, OwnableUpgradeable {
 	function setSlot(uint256 _slot, uint32 _amount, uint256 _tokenId) external authorised(msg.sender) {
 		require(_slot < 8);
 
-		uint256 current = blobs[_tokenId];
+		uint256 current = blobs[_tokenId]; //  2500
 		// get the inverse of the slot mask 
 		uint256 inverseMask = ~(0xffffffff << _slot);
 		// filter current blob with inverse mask to remove the current slot and update it (OR operation) to add slot
-		blobs[_tokenId] = (current & inverseMask) | (_amount << _slot);
+		blobs[_tokenId] = (current & inverseMask) | (_amount << _slot); // 
 	}
 
 	/**
@@ -122,7 +142,7 @@ contract CoSoul is ERC721Upgradeable, OwnableUpgradeable {
 
 	/**
 	 * @notice
-	 * Function to sync blob data of a token from a merkle tree signed by our signer
+	 * Function to sync blob data of a token from a signature signed by our signer
 	 * @param _data Blob data that will overwrite current data
 	 * @param _tokenId Token ID from which to update blob
 	 * @param _nonce Sync counter used to prevent replays
@@ -144,6 +164,7 @@ contract CoSoul is ERC721Upgradeable, OwnableUpgradeable {
 	 * @param _tokenId Token to transfer
 	 */
 	function overrideTransfer(address _from, address _to, uint256 _tokenId) external authorised(msg.sender) {
+		require(balanceOf(_to) == 0);
 		_transfer(_from, _to, _tokenId);
 	}
 
@@ -163,10 +184,20 @@ contract CoSoul is ERC721Upgradeable, OwnableUpgradeable {
 		uint256 _nonce,
 		bytes calldata _signature) external {
 		require(ownerOf(_tokenId) == msg.sender);
+		require(balanceOf(_to) == 0);
 		require(transferNonces[_tokenId]++ == _nonce);
 		require(keccak256(abi.encodePacked(_tokenId, _nonce)).toEthSignedMessageHash().recover(_signature) == signer, "Sig not valid");
 
 		_transfer(_from, _to, _tokenId);
+	}
+
+	/**
+	 * @notice
+	 * Function to mint token 
+	 */
+	function mint() external {
+		require(balanceOf(msg.sender) == 0);
+		_mint(msg.sender, ++counter);
 	}
 
 	/**
@@ -185,12 +216,24 @@ contract CoSoul is ERC721Upgradeable, OwnableUpgradeable {
 
 	/**
 	 * @notice
-	 * Function to mint token via signature to msg.sender
+	 * Function to burn token from msg.sender
+	 * @param _tokenId Token ID to be burnt (fiiire)
+	 */
+	function burn(uint256 _tokenId) external {
+		require(ownerOf(_tokenId) == msg.sender);
+		
+		blobs[_tokenId] = 0;
+		_burn(_tokenId);
+	}
+
+	/**
+	 * @notice
+	 * Function to burn token via signature to msg.sender
 	 * @param _tokenId Token ID to be burnt (fiiire)
 	 * @param _nonce Burn counter used to prevent replays
 	 * @param _signature Signature provided by our signer to validate burn
 	 */
-	function burnWithSignature( uint256 _tokenId, uint256 _nonce, bytes calldata _signature) external {
+	function burnWithSignature(uint256 _tokenId, uint256 _nonce, bytes calldata _signature) external {
 		require(ownerOf(_tokenId) == msg.sender); // not necessary?
 		require(burnNonces[_tokenId]++ == _nonce);
 		require(keccak256(abi.encodePacked(_tokenId, _nonce)).toEthSignedMessageHash().recover(_signature) == signer, "Sig not valid");
@@ -210,4 +253,13 @@ contract CoSoul is ERC721Upgradeable, OwnableUpgradeable {
 	function safeTransferFrom(address from, address to, uint256 tokenId, bytes memory _data) public override {
 		revert("nope");
 	}
+
+    /**
+     * @dev Base URI for computing {tokenURI}. If set, the resulting URI for each
+     * token will be the concatenation of the `baseURI` and the `tokenId`. Empty
+     * by default, can be overridden in child contracts.
+     */
+    function _baseURI() internal view override returns (string memory) {
+        return baseUri;
+    }
 }

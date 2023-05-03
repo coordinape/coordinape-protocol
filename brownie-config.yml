@@ -5,18 +5,18 @@ networks:
             fork: ${ETHEREUM_RPC_URL}@14000000
 
 dependencies:
-    - OpenZeppelin/openzeppelin-contracts@4.0.0-rc.0
-    - OpenZeppelin/openzeppelin-contracts-upgradeable@4.0.0-rc.0
+    - OpenZeppelin/openzeppelin-contracts@4.8.3
+    - OpenZeppelin/openzeppelin-contracts-upgradeable@4.8.3
 
 compiler:
     solc:
-        version: 0.8.2
+        version: 0.8.17
         optimizer:
             enabled: true
             runs: 200
         remappings:
-            - "@openzeppelin=OpenZeppelin/openzeppelin-contracts@4.0.0-rc.0"
-            - "@openzeppelinupgrade=OpenZeppelin/openzeppelin-contracts-upgradeable@4.0.0-rc.0"
+            - "@openzeppelin=OpenZeppelin/openzeppelin-contracts@4.8.3"
+            - "@openzeppelinupgrade=OpenZeppelin/openzeppelin-contracts-upgradeable@4.8.3"
 
 autofetch_sources: true
 

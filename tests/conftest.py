@@ -102,6 +102,6 @@ def mock_factory_registry_beacon(MockVaultFactoryBeacon, ape_reg, yearn_reg, min
 @pytest.fixture()
 def cosoul(SoulProxy, CoSoul, accounts, minter, mock_registry_beacon):
     imp = CoSoul.deploy({'from':minter})
-    data = imp.init.encode_input("", "", accounts[2])
+    data = imp.initialize.encode_input("", "", accounts[2])
     proxy = SoulProxy.deploy(imp.address, accounts[1], data, {'from': minter})
     return Contract.from_abi("CoSoul", proxy.address, CoSoul.abi)

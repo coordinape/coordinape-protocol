@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 pragma solidity ^0.8.2;
 
-import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
-import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelinupgrade/contracts/utils/cryptography/ECDSAUpgradeable.sol";
+import "@openzeppelinupgrade/contracts/token/ERC721/ERC721Upgradeable.sol";
+import "@openzeppelinupgrade/contracts/access/OwnableUpgradeable.sol";
 
-contract CoSoul is ERC721("CoSoul", "Soul"), Ownable {
-	using ECDSA for bytes32;
+contract CoSoul is ERC721Upgradeable, OwnableUpgradeable {
+	using ECDSAUpgradeable for bytes32;
 
 	bool public initiated;
 	address public signer;
@@ -32,12 +32,9 @@ contract CoSoul is ERC721("CoSoul", "Soul"), Ownable {
 	 * @param __symbol Symbol of SBT
 	 * @param _signer Address that will provide valid signatures
 	 */
-	function init(string memory __name, string memory __symbol, address _signer) external {
-		require(!initiated);
-		initiated = true;
-		_name = __name;
-		_symbol = __symbol;
-		_owner = msg.sender;
+	function initialize(string memory __name, string memory __symbol, address _signer) public initializer {
+		__Ownable_init();
+		__ERC721_init(__name, __symbol);
 		signer = _signer;
 	}
 

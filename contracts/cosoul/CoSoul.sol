@@ -3,7 +3,7 @@ pragma solidity ^0.8.2;
 
 // Required for hardhat compilation
 import "@openzeppelin/contracts-upgradeable/utils/cryptography/ECDSAUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/ERC721EnumerableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
 // Required for brownie compilation
@@ -11,7 +11,7 @@ import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 // import "@openzeppelinupgrade/contracts/token/ERC721/ERC721Upgradeable.sol";
 // import "@openzeppelinupgrade/contracts/access/OwnableUpgradeable.sol";
 
-contract CoSoul is ERC721Upgradeable, OwnableUpgradeable {
+contract CoSoul is OwnableUpgradeable, ERC721EnumerableUpgradeable {
     using ECDSAUpgradeable for bytes32;
 
     bool public initiated;

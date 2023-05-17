@@ -83,6 +83,43 @@ contract CoSoul is OwnableUpgradeable, ERC721EnumerableUpgradeable {
         value = (current & mask) >> _slot;
     }
 
+        /**
+        * @notice
+        * Function to update the value of a slot in a blob
+        * @param _data bytes data
+        *               3 bits for slot | one byte
+        *               after previous byte, alternate bewteen next elements like a packed array
+        *               4 bytes for each address
+        *               4 bytes for each token ID
+        */
+    function batchSetSlot_UfO(bytes memory _data) external authorised(msg.sender) {
+        uint256 length = _data.length / 8;
+        uint256 slot;
+        uint256 amount;
+        uint256 tokenid;
+        assembly {
+            slot := shr(0xf8, mload(add(_data, 0x20)))
+        }
+        for (uint256 i = 0; i < length; i++) {
+            assembly {
+                let j := add(0x21, mul(i, 0x08))
+                amount := shr(0xe0, mload(add(_data, j)))
+                tokenid := shr(0xe0, mload(add(_data, add(j, 0x04))))
+            }
+            _updateSlot(slot, uint32(amount), tokenid);
+        }
+    }
+
+    function _updateSlot(uint256 _slot ,uint32 _amount, uint256 _tokenId) internal {
+        uint256 current = blobs[_tokenId]; // 100 gas once warm 
+        // get the inverse of the slot mask 
+        uint256 inverseMask = ~(0xffffffff << _slot);
+        // filter current blob with inverse mask to remove the current slot and update it (OR operation) to add slot
+        blobs[_tokenId] = (current & inverseMask) | (_amount << _slot); // 2900 once warm
+    }
+
+
+
     /**
      * @notice
      * Function to update the value of a slot in a blob

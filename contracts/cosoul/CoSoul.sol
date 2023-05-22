@@ -15,6 +15,7 @@ contract CoSoul is OwnableUpgradeable, ERC721EnumerableUpgradeable {
     using ECDSAUpgradeable for bytes32;
 
     bool public initiated;
+    string baseUri;
     address public signer;
     mapping(address => bool) public authorisedCallers;
     mapping(uint256 => uint256) public transferNonces;
@@ -24,8 +25,6 @@ contract CoSoul is OwnableUpgradeable, ERC721EnumerableUpgradeable {
     uint256 public counter;
     // blobs are uint256 storage divided in 8 uint32 slots
     mapping(uint256 => uint256) public blobs;
-
-    string baseUri;
 
     modifier authorised(address _operator) {
         require(authorisedCallers[_operator] || _operator == owner());
@@ -370,5 +369,14 @@ contract CoSoul is OwnableUpgradeable, ERC721EnumerableUpgradeable {
      */
     function _baseURI() internal view override returns (string memory) {
         return baseUri;
+    }
+
+    /**
+     * @notice
+     * Set a new baseURI. Owner gated.
+     * @param _newBaseURI New baseURI
+     */
+    function setBaseURI(string memory _newBaseURI) external onlyOwner {
+        baseUri = _newBaseURI;
     }
 }

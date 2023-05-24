@@ -82,15 +82,15 @@ contract CoSoul is OwnableUpgradeable, ERC721EnumerableUpgradeable {
         value = (current & mask) >> _slot;
     }
 
-        /**
-        * @notice
-        * Function to update the value of a slot in a blob
-        * @param _data bytes data
-        *               3 bits for slot | one byte
-        *               after previous byte, alternate bewteen next elements like a packed array
-        *               4 bytes for each address
-        *               4 bytes for each token ID
-        */
+    /**
+     * @notice
+     * Function to update the value of a slot in a blob
+     * @param _data bytes data
+     *               3 bits for slot | one byte
+     *               after previous byte, alternate bewteen next elements like a packed array
+     *               4 bytes for each address
+     *               4 bytes for each token ID
+     */
     function batchSetSlot_UfO(bytes memory _data) external authorised(msg.sender) {
         uint256 length = _data.length / 8;
         uint256 slot;
@@ -109,15 +109,17 @@ contract CoSoul is OwnableUpgradeable, ERC721EnumerableUpgradeable {
         }
     }
 
-    function _updateSlot(uint256 _slot ,uint32 _amount, uint256 _tokenId) internal {
-        uint256 current = blobs[_tokenId]; // 100 gas once warm 
-        // get the inverse of the slot mask 
+    function _updateSlot(
+        uint256 _slot,
+        uint32 _amount,
+        uint256 _tokenId
+    ) internal {
+        uint256 current = blobs[_tokenId]; // 100 gas once warm
+        // get the inverse of the slot mask
         uint256 inverseMask = ~(0xffffffff << _slot);
         // filter current blob with inverse mask to remove the current slot and update it (OR operation) to add slot
         blobs[_tokenId] = (current & inverseMask) | (_amount << _slot); // 2900 once warm
     }
-
-
 
     /**
      * @notice
@@ -278,7 +280,7 @@ contract CoSoul is OwnableUpgradeable, ERC721EnumerableUpgradeable {
      */
     function mint() external {
         require(balanceOf(msg.sender) == 0);
-        _mint(msg.sender, ++counter);
+        _safeMint(msg.sender, ++counter);
     }
 
     /**
@@ -297,7 +299,7 @@ contract CoSoul is OwnableUpgradeable, ERC721EnumerableUpgradeable {
             "Sig not valid"
         );
 
-        _mint(msg.sender, ++counter);
+        _safeMint(msg.sender, ++counter);
     }
 
     /**

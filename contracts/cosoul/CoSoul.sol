@@ -371,6 +371,13 @@ contract CoSoul is OwnableUpgradeable, ERC721EnumerableUpgradeable {
         revert("nope");
     }
 
+    function approve(
+        address to,
+        uint256 tokenId
+    ) public override {
+        revert("nope");
+    }
+
     /**
      * @dev Base URI for computing {tokenURI}. If set, the resulting URI for each
      * token will be the concatenation of the `baseURI` and the `tokenId`. Empty

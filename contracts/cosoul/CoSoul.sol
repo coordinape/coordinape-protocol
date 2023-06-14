@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-License-Identifier: AGPL-3.0
 pragma solidity ^0.8.2;
 
 // Required for hardhat compilation
@@ -394,5 +394,12 @@ contract CoSoul is OwnableUpgradeable, ERC721EnumerableUpgradeable {
      */
     function setBaseURI(string memory _newBaseURI) external onlyOwner {
         baseUri = _newBaseURI;
+    }
+
+    /**
+     * @dev Get Base URI used for computing {tokenURI}.
+     */
+    function getBaseURI() external returns (string memory) {
+        return baseUri;
     }
 }

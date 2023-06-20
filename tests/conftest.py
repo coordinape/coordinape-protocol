@@ -1,5 +1,6 @@
 import pytest
 import csv
+from brownie import Contract
 
 @pytest.fixture(scope="function", autouse=True)
 def shared_setup(fn_isolation):
@@ -97,3 +98,10 @@ def mock_registry_beacon(VaultBeacon, minter, implementation1):
 @pytest.fixture()
 def mock_factory_registry_beacon(MockVaultFactoryBeacon, ape_reg, yearn_reg, minter, mock_registry_beacon):
     return MockVaultFactoryBeacon.deploy(yearn_reg, ape_reg, mock_registry_beacon, {'from':minter})
+
+@pytest.fixture()
+def cosoul(SoulProxy, CoSoul, accounts, minter, mock_registry_beacon):
+    imp = CoSoul.deploy({'from':minter})
+    data = imp.initialize.encode_input("", "", accounts[2])
+    proxy = SoulProxy.deploy(imp.address, accounts[1], data, {'from': minter})
+    return Contract.from_abi("CoSoul", proxy.address, CoSoul.abi)

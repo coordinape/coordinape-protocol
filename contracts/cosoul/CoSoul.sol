@@ -364,17 +364,11 @@ contract CoSoul is OwnableUpgradeable, ERC721EnumerableUpgradeable {
         revert("nope");
     }
 
-    function setApprovalForAll(
-        address operator,
-        bool approved
-    ) public override {
+    function setApprovalForAll(address operator, bool approved) public override {
         revert("nope");
     }
 
-    function approve(
-        address to,
-        uint256 tokenId
-    ) public override {
+    function approve(address to, uint256 tokenId) public override {
         revert("nope");
     }
 
@@ -388,11 +382,44 @@ contract CoSoul is OwnableUpgradeable, ERC721EnumerableUpgradeable {
     }
 
     /**
+     * @dev See {IERC721Metadata-tokenURI}.
+     * Override tokenId metadata to use address based metadata
+     */
+    function tokenURI(uint256 tokenId) public view virtual override returns (string memory) {
+        _requireMinted(tokenId);
+        address owner = ERC721Upgradeable.ownerOf(tokenId);
+        string memory baseURI = _baseURI();
+
+        return
+            bytes(baseURI).length > 0 ? string(abi.encodePacked(baseURI, _toHexString(owner))) : "";
+    }
+
+    /**
      * @notice
      * Set a new baseURI. Owner gated.
      * @param _newBaseURI New baseURI
      */
     function setBaseURI(string memory _newBaseURI) external onlyOwner {
         baseUri = _newBaseURI;
+    }
+
+    /**
+     * @notice
+     * Helper function to convert address to hex string
+     * @param _address address to convert to string
+     * @return string representation of address
+     */
+    function _toHexString(address _address) public pure returns (string memory) {
+        bytes32 value = bytes32(uint256(uint160(_address)));
+        bytes memory alphabet = "0123456789abcdef";
+
+        bytes memory str = new bytes(42);
+        str[0] = "0";
+        str[1] = "x";
+        for (uint256 i = 0; i < 20; i++) {
+            str[2 + i * 2] = alphabet[uint8(value[i + 12] >> 4)];
+            str[3 + i * 2] = alphabet[uint8(value[i + 12] & 0x0f)];
+        }
+        return string(str);
     }
 }

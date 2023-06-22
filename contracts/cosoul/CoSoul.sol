@@ -12,6 +12,16 @@ import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 // import "@openzeppelinupgrade/contracts/access/OwnableUpgradeable.sol";
 
 contract CoSoul is OwnableUpgradeable, ERC721EnumerableUpgradeable {
+    /// @dev This event emits when the metadata of a token is changed.
+    /// So that the third-party platforms such as NFT market could
+    /// timely update the images and related attributes of the NFT.
+    event MetadataUpdate(uint256 _tokenId);
+
+    /// @dev This event emits when the metadata of a range of tokens is changed.
+    /// So that the third-party platforms such as NFT market could
+    /// timely update the images and related attributes of the NFTs.
+    event BatchMetadataUpdate(uint256 _fromTokenId, uint256 _toTokenId);
+
     using ECDSAUpgradeable for bytes32;
 
     bool public initiated;
@@ -147,6 +157,9 @@ contract CoSoul is OwnableUpgradeable, ERC721EnumerableUpgradeable {
     /**
      * @notice
      * Function to update the value of a slot in a blob
+     *
+     * Emits {MetadataUpdate}.
+     *
      * @param _slot Slot value. Up to 7
      * @param _amount Amout to update
      * @param _tokenId Token ID from which to update the blob data
@@ -163,6 +176,7 @@ contract CoSoul is OwnableUpgradeable, ERC721EnumerableUpgradeable {
         uint256 inverseMask = ~(0xffffffff << _slot);
         // filter current blob with inverse mask to remove the current slot and update it (OR operation) to add slot
         blobs[_tokenId] = (current & inverseMask) | (_amount << _slot); //
+        emit MetadataUpdate(_tokenId);
     }
 
     /**
@@ -364,17 +378,11 @@ contract CoSoul is OwnableUpgradeable, ERC721EnumerableUpgradeable {
         revert("nope");
     }
 
-    function setApprovalForAll(
-        address operator,
-        bool approved
-    ) public override {
+    function setApprovalForAll(address operator, bool approved) public override {
         revert("nope");
     }
 
-    function approve(
-        address to,
-        uint256 tokenId
-    ) public override {
+    function approve(address to, uint256 tokenId) public override {
         revert("nope");
     }
 

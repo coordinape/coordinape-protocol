@@ -12,6 +12,16 @@ import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 // import "@openzeppelinupgrade/contracts/access/OwnableUpgradeable.sol";
 
 contract CoSoul is OwnableUpgradeable, ERC721EnumerableUpgradeable {
+    /// @dev This event emits when the metadata of a token is changed.
+    /// So that the third-party platforms such as NFT market could
+    /// timely update the images and related attributes of the NFT.
+    event MetadataUpdate(uint256 _tokenId);
+
+    /// @dev This event emits when the metadata of a range of tokens is changed.
+    /// So that the third-party platforms such as NFT market could
+    /// timely update the images and related attributes of the NFTs.
+    event BatchMetadataUpdate(uint256 _fromTokenId, uint256 _toTokenId);
+
     using ECDSAUpgradeable for bytes32;
 
     bool public initiated;
@@ -124,6 +134,9 @@ contract CoSoul is OwnableUpgradeable, ERC721EnumerableUpgradeable {
     /**
      * @notice
      * Function to update the value of a slot in a blob
+     *
+     * Emits {MetadataUpdate}.
+     *
      * @param _slots Slot value. Up to 7
      * @param _amounts Amout to update
      * @param _tokenIds Token ID from which to update the blob data
@@ -141,12 +154,16 @@ contract CoSoul is OwnableUpgradeable, ERC721EnumerableUpgradeable {
             uint256 inverseMask = ~(0xffffffff << _slots[i]);
             // filter current blob with inverse mask to remove the current slot and update it (OR operation) to add slot
             blobs[_tokenIds[i]] = (current & inverseMask) | (_amounts[i] << _slots[i]);
+            emit MetadataUpdate(_tokenIds[i]);
         }
     }
 
     /**
      * @notice
      * Function to update the value of a slot in a blob
+     *
+     * Emits {MetadataUpdate}.
+     *
      * @param _slot Slot value. Up to 7
      * @param _amount Amout to update
      * @param _tokenId Token ID from which to update the blob data
@@ -163,11 +180,15 @@ contract CoSoul is OwnableUpgradeable, ERC721EnumerableUpgradeable {
         uint256 inverseMask = ~(0xffffffff << _slot);
         // filter current blob with inverse mask to remove the current slot and update it (OR operation) to add slot
         blobs[_tokenId] = (current & inverseMask) | (_amount << _slot); //
+        emit MetadataUpdate(_tokenId);
     }
 
     /**
      * @notice
      * Function to increment the value of a slot in a blob by some amount
+     *
+     * Emits {MetadataUpdate}.
+     *
      * @param _slot Slot value. Up to 7
      * @param _amount Amout to increment a slot
      * @param _tokenId Token ID from which to update the blob data
@@ -182,11 +203,15 @@ contract CoSoul is OwnableUpgradeable, ERC721EnumerableUpgradeable {
         require(value + _amount <= type(uint32).max, "CoSoul: uint32 overflow");
         uint256 current = blobs[_tokenId];
         blobs[_tokenId] = current + (_amount << _slot);
+        emit MetadataUpdate(_tokenId);
     }
 
     /**
      * @notice
      * Function to decrement the value of a slot in a blob by some amount
+     *
+     * Emits {MetadataUpdate}.
+     *
      * @param _slot Slot value. Up to 7
      * @param _amount Amout to decrement a slot
      * @param _tokenId Token ID from which to update the blob data
@@ -201,11 +226,15 @@ contract CoSoul is OwnableUpgradeable, ERC721EnumerableUpgradeable {
         require(value >= _amount, "CoSoul: uint32 overflow");
         uint256 current = blobs[_tokenId];
         blobs[_tokenId] = current - (_amount << _slot);
+        emit MetadataUpdate(_tokenId);
     }
 
     /**
      * @notice
      * Function to sync blob data of a token from a signature signed by our signer
+     *
+     * Emits {MetadataUpdate}.
+     *
      * @param _data Blob data that will overwrite current data
      * @param _tokenId Token ID from which to update blob
      * @param _nonce Sync counter used to prevent replays
@@ -227,6 +256,7 @@ contract CoSoul is OwnableUpgradeable, ERC721EnumerableUpgradeable {
         );
 
         blobs[_tokenId] = _data;
+        emit MetadataUpdate(_tokenId);
     }
 
     /**
@@ -364,17 +394,11 @@ contract CoSoul is OwnableUpgradeable, ERC721EnumerableUpgradeable {
         revert("nope");
     }
 
-    function setApprovalForAll(
-        address operator,
-        bool approved
-    ) public override {
+    function setApprovalForAll(address operator, bool approved) public override {
         revert("nope");
     }
 
-    function approve(
-        address to,
-        uint256 tokenId
-    ) public override {
+    function approve(address to, uint256 tokenId) public override {
         revert("nope");
     }
 

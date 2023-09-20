@@ -292,8 +292,9 @@ contract CoSoul is OwnableUpgradeable, ERC721EnumerableUpgradeable {
      * @notice
      * Function to mint token
      */
-    function mint() external {
+    function mint() external payable {
         require(balanceOf(msg.sender) == 0);
+        require(msg.value >= 10 gwei, "CoSoul: Insufficient mint fee");
         _safeMint(msg.sender, ++counter);
     }
 

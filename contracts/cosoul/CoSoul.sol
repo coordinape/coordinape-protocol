@@ -36,6 +36,8 @@ contract CoSoul is OwnableUpgradeable, ERC721EnumerableUpgradeable {
     // blobs are uint256 storage divided in 8 uint32 slots
     mapping(uint256 => uint256) public blobs;
 
+    uint256 public mintFeeInWei;
+
     modifier authorised(address _operator) {
         require(authorisedCallers[_operator] || _operator == owner());
         _;
@@ -75,6 +77,15 @@ contract CoSoul is OwnableUpgradeable, ERC721EnumerableUpgradeable {
      */
     function setCallers(address _caller, bool _val) external onlyOwner {
         authorisedCallers[_caller] = _val;
+    }
+
+    /**
+     * @notice
+     * Function to set the mintFee, demoninated in Wei. Requires authorised caller.
+     * @param _mintFeeInWei New mintFee
+     */
+    function setMintFee(uint256 _mintFeeInWei) external authorised(msg.sender) {
+        mintFeeInWei = _mintFeeInWei;
     }
 
     /**
@@ -294,7 +305,11 @@ contract CoSoul is OwnableUpgradeable, ERC721EnumerableUpgradeable {
      */
     function mint() external payable {
         require(balanceOf(msg.sender) == 0);
-        require(msg.value >= 10 gwei, "CoSoul: Insufficient mint fee");
+
+        if (totalSupply() > 25000) {
+            require(msg.value >= mintFeeInWei, "CoSoul: Insufficient mint fee");
+        }
+
         _safeMint(msg.sender, ++counter);
     }
 

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: None
 pragma solidity ^0.8.2;
 
 import "@openzeppelin/contracts/access/Ownable.sol";

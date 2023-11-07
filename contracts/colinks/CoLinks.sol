@@ -24,7 +24,7 @@ contract CoLinks is Ownable {
         protocolFeePercent = _feePercent;
     }
 
-    function setSubjectFeePercent(uint256 _feePercent) public onlyOwner {
+    function setTargetFeePercent(uint256 _feePercent) public onlyOwner {
         targetFeePercent = _feePercent;
     }
 

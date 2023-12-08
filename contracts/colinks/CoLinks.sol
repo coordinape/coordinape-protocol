@@ -7,6 +7,7 @@ contract CoLinks is Ownable {
     address public protocolFeeDestination;
     uint256 public protocolFeePercent;
     uint256 public targetFeePercent;
+    uint256 public baseFeeMax;
 
     event LinkTx(address holder, address target, bool isBuy, uint256 linkAmount, uint256 ethAmount, uint256 protocolEthAmount, uint256 targetEthAmount, uint256 supply);
 
@@ -28,11 +29,25 @@ contract CoLinks is Ownable {
         targetFeePercent = _feePercent;
     }
 
+    function setBaseFeeMax(uint256 _fee) public onlyOwner {
+        baseFeeMax = _fee;
+    }
+
+    function calcBaseFee(uint256 price) private view returns (uint256) {
+        uint256 fee = (price / 10);
+        if (fee >= baseFeeMax) {
+            return baseFeeMax;
+        } else {
+            return fee;
+        }
+    }
+  
     function getPrice(uint256 supply, uint256 amount) public pure returns (uint256) {
-        uint256 sum1 = supply == 0 ? 0 : (supply - 1 )* (supply) * (2 * (supply - 1) + 1) / 6;
-        uint256 sum2 = supply == 0 && amount == 1 ? 0 : (supply - 1 + amount) * (supply + amount) * (2 * (supply - 1 + amount) + 1) / 6;
+        uint256 scaleFactor = 100;
+        uint256 sum1 = supply == 0 ? 0 : ((supply - 1) * (supply) * (2 * (supply - 1) + 1) * scaleFactor) / 24;
+        uint256 sum2 = supply == 0 && amount == 1 ? 0 : ((supply - 1 + amount) * (supply + amount) * (2 * (supply - 1 + amount) + 1)  * scaleFactor)/ 24;
         uint256 summation = sum2 - sum1;
-        return summation * 1 ether / 16000;
+        return summation * 1 ether / (16000 * scaleFactor);
     }
 
     function getBuyPrice(address linkTarget, uint256 amount) public view returns (uint256) {
@@ -47,14 +62,23 @@ contract CoLinks is Ownable {
         uint256 price = getBuyPrice(linkTarget, amount);
         uint256 protocolFee = price * protocolFeePercent / 1 ether;
         uint256 targetFee = price * targetFeePercent / 1 ether;
-        return price + protocolFee + targetFee;
+
+        uint256 supply = linkSupply[linkTarget];
+
+        uint256 baseFee = 0;
+        if (supply > 0) {
+            // don't add base fee to first link
+            // use max fee for all buys
+            baseFee = baseFeeMax;
+        }
+        return price + protocolFee + targetFee + baseFee;
     }
 
     function getSellPriceAfterFee(address linkTarget, uint256 amount) public view returns (uint256) {
         uint256 price = getSellPrice(linkTarget, amount);
         uint256 protocolFee = price * protocolFeePercent / 1 ether;
         uint256 targetFee = price * targetFeePercent / 1 ether;
-        return price - protocolFee - targetFee;
+        return price - protocolFee - targetFee - calcBaseFee(price);
     }
 
     function buyLinks(address linkTarget, uint256 amount) public payable {
@@ -63,6 +87,13 @@ contract CoLinks is Ownable {
         uint256 price = getPrice(supply, amount);
         uint256 protocolFee = price * protocolFeePercent / 1 ether;
         uint256 targetFee = price * targetFeePercent / 1 ether;
+
+        if (supply > 0) {
+            // don't add base fee to first link
+            protocolFee = protocolFee + baseFeeMax / 2;
+            targetFee = targetFee + baseFeeMax / 2;
+        }
+
         require(msg.value >= price + protocolFee + targetFee, "Insufficient payment");
         linkBalance[linkTarget][msg.sender] = linkBalance[linkTarget][msg.sender] + amount;
         linkSupply[linkTarget] = supply + amount;
@@ -75,9 +106,18 @@ contract CoLinks is Ownable {
     function sellLinks(address linkTarget, uint256 amount) public payable {
         uint256 supply = linkSupply[linkTarget];
         require(supply > amount, "Cannot sell the last link");
+
         uint256 price = getPrice(supply - amount, amount);
         uint256 protocolFee = price * protocolFeePercent / 1 ether;
         uint256 targetFee = price * targetFeePercent / 1 ether;
+
+        if (supply > 0) {
+            // don't add base fee to first link
+            uint256 baseFee = calcBaseFee(price);
+            protocolFee += baseFee / 2;
+            targetFee += baseFee / 2;
+        }
+
         require(linkBalance[linkTarget][msg.sender] >= amount, "Insufficient links");
         linkBalance[linkTarget][msg.sender] = linkBalance[linkTarget][msg.sender] - amount;
         linkSupply[linkTarget] = supply - amount;

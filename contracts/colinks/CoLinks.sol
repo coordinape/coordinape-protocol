@@ -17,19 +17,23 @@ contract CoLinks is Ownable {
     // LinkTarget => Supply
     mapping(address => uint256) public linkSupply;
 
-    function setFeeDestination(address _feeDestination) public onlyOwner {
+    function setFeeDestination(address _feeDestination) external onlyOwner {
         protocolFeeDestination = _feeDestination;
     }
 
-    function setProtocolFeePercent(uint256 _feePercent) public onlyOwner {
+    function setProtocolFeePercent(uint256 _feePercent) external onlyOwner {
+        require(_feePercent <= (1 * 1 ether / 10), "Fee too high");
         protocolFeePercent = _feePercent;
     }
 
-    function setTargetFeePercent(uint256 _feePercent) public onlyOwner {
+
+    function setTargetFeePercent(uint256 _feePercent) external onlyOwner {
+        require(_feePercent <= (1 * 1 ether / 10), "Fee too high");
         targetFeePercent = _feePercent;
     }
 
-    function setBaseFeeMax(uint256 _fee) public onlyOwner {
+    function setBaseFeeMax(uint256 _fee) external onlyOwner {
+        require(_fee <= (1 ether / 1000), "Fee too high");
         baseFeeMax = _fee;
     }
 
@@ -58,15 +62,13 @@ contract CoLinks is Ownable {
         return getPrice(linkSupply[linkTarget] - amount, amount);
     }
 
-    function getBuyPriceAfterFee(address linkTarget, uint256 amount) public view returns (uint256) {
+    function getBuyPriceAfterFee(address linkTarget, uint256 amount) external view returns (uint256) {
         uint256 price = getBuyPrice(linkTarget, amount);
         uint256 protocolFee = price * protocolFeePercent / 1 ether;
         uint256 targetFee = price * targetFeePercent / 1 ether;
 
-        uint256 supply = linkSupply[linkTarget];
-
         uint256 baseFee = 0;
-        if (supply > 0) {
+        if (linkSupply[linkTarget] > 0) {
             // don't add base fee to first link
             // use max fee for all buys
             baseFee = baseFeeMax;
@@ -74,14 +76,14 @@ contract CoLinks is Ownable {
         return price + protocolFee + targetFee + baseFee;
     }
 
-    function getSellPriceAfterFee(address linkTarget, uint256 amount) public view returns (uint256) {
+    function getSellPriceAfterFee(address linkTarget, uint256 amount) external view returns (uint256) {
         uint256 price = getSellPrice(linkTarget, amount);
         uint256 protocolFee = price * protocolFeePercent / 1 ether;
         uint256 targetFee = price * targetFeePercent / 1 ether;
         return price - protocolFee - targetFee - calcBaseFee(price);
     }
 
-    function buyLinks(address linkTarget, uint256 amount) public payable {
+    function buyLinks(address linkTarget, uint256 amount) external payable {
         uint256 supply = linkSupply[linkTarget];
         require(supply > 0 || linkTarget == msg.sender, "Only the links' target can buy the first link");
         uint256 price = getPrice(supply, amount);
@@ -94,7 +96,7 @@ contract CoLinks is Ownable {
             targetFee = targetFee + baseFeeMax / 2;
         }
 
-        require(msg.value >= price + protocolFee + targetFee, "Insufficient payment");
+        require(msg.value == price + protocolFee + targetFee, "Inexact payment amount");
         linkBalance[linkTarget][msg.sender] = linkBalance[linkTarget][msg.sender] + amount;
         linkSupply[linkTarget] = supply + amount;
         emit LinkTx(msg.sender, linkTarget, true, amount, price, protocolFee, targetFee, supply + amount);
@@ -103,7 +105,7 @@ contract CoLinks is Ownable {
         require(success1 && success2, "Unable to send funds");
     }
 
-    function sellLinks(address linkTarget, uint256 amount) public payable {
+    function sellLinks(address linkTarget, uint256 amount) external payable {
         uint256 supply = linkSupply[linkTarget];
         require(supply > amount, "Cannot sell the last link");
 

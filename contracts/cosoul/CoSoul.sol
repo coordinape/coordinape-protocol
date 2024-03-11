@@ -335,6 +335,16 @@ contract CoSoul is OwnableUpgradeable, ERC721EnumerableUpgradeable {
 
     /**
      * @notice
+     * Function to mint token to a specific address
+     * @param _to Address to mint token to
+     */
+    function mintTo(address _to) external authorised(msg.sender) {
+        require(balanceOf(_to) == 0, "Address already has a cosoul");
+        _safeMint(_to, ++counter);
+    }
+
+    /**
+     * @notice
      * Function to burn token from msg.sender
      * @param _tokenId Token ID to be burnt (fiiire)
      */
